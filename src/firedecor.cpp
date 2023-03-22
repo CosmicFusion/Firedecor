@@ -1,4 +1,4 @@
-#include <wayfire/singleton-plugin.hpp>
+#include <wayfire/per-output-plugin.hpp>
 #include <wayfire/view.hpp>
 #include <wayfire/matcher.hpp>
 #include <wayfire/workspace-manager.hpp>
@@ -7,48 +7,48 @@
 
 #include "firedecor-subsurface.hpp"
 
-namespace {
-struct wayfire_decoration_global_cleanup_t {
-    wayfire_decoration_global_cleanup_t() = default;
-    ~wayfire_decoration_global_cleanup_t() {
-        for (auto view : wf::get_core().get_all_views()) {
-            wf::firedecor::deinit_view(view);
-        }
-    }
+#include <stdio.h>
 
-    wayfire_decoration_global_cleanup_t(const wayfire_decoration_global_cleanup_t &)
-    = delete;
-    wayfire_decoration_global_cleanup_t(wayfire_decoration_global_cleanup_t &&) =
-    delete;
-    wayfire_decoration_global_cleanup_t& operator =(
-        const wayfire_decoration_global_cleanup_t&) = delete;
-    wayfire_decoration_global_cleanup_t& operator =(
-        wayfire_decoration_global_cleanup_t&&) = delete;
-};
-
-class wayfire_firedecor_t : 
-	public wf::singleton_plugin_t<wayfire_decoration_global_cleanup_t, true> {
-
+class wayfire_firedecor_t : public wf::plugin_interface_t, private wf::per_output_tracker_mixin_t<>
+{
     wf::view_matcher_t ignore_views{"firedecor/ignore_views"};
     wf::option_wrapper_t<std::string> extra_themes{"firedecor/extra_themes"};
-
-    wf::signal_connection_t view_updated{ [=] (wf::signal_data_t *data) {
-	        update_view_decoration(get_signaled_view(data));
-	    }
-    };
 
     wf::config::config_manager_t& config = wf::get_core().config;
 
   public:
 
-    void init() override {
-        grab_interface->name = "firedecor";
-        grab_interface->capabilities = wf::CAPABILITY_VIEW_DECORATOR;
+    /*wf::plugin_activation_data_t grab_interface{
+        .name = "firedecor",
+        .capabilities = wf::CAPABILITY_GRAB_INPUT,
+    };*/
 
-        output->connect_signal("view-mapped", &view_updated);
-        output->connect_signal("view-decoration-state-updated", &view_updated);
+    void init() override {
+        fprintf(stderr, "FIREDECOR: init()\n");
+        this->init_output_tracking();
+    }
+
+    void handle_new_output(wf::output_t *output) override {
+        fprintf(stderr, "FIREDECOR: handle_new_output()\n");
+        wf::signal::connection_t<wf::view_mapped_signal> view_mapped = [=] (wf::view_mapped_signal *ev) {
+            update_view_decoration(ev->view);
+        };
+        wf::signal::connection_t<wf::view_decoration_changed_signal> view_updated = [=] (wf::view_decoration_changed_signal *ev) {
+            update_view_decoration(ev->view);
+        };
+
+        output->connect(&view_mapped);
+        output->connect(&view_updated);
         for (auto& view : output->workspace->get_views_in_layer(wf::ALL_LAYERS)) {
             update_view_decoration(view);
+        }
+    }
+
+    void handle_output_removed(wf::output_t *output) override
+    {
+        for (auto& view : output->workspace->get_views_in_layer(wf::ALL_LAYERS))
+        {
+            wf::firedecor::deinit_view(view);
         }
     }
 
@@ -69,9 +69,9 @@ class wayfire_firedecor_t :
         wf::firedecor::theme_options options = {
             get_option<std::string>(theme, "font"),
             get_option<int>(theme, "font_size"),
-        	get_option<wf::color_t>(theme, "active_title"),
-        	get_option<wf::color_t>(theme, "inactive_title"),
-        	get_option<int>(theme, "max_title_size"),
+            get_option<wf::color_t>(theme, "active_title"),
+            get_option<wf::color_t>(theme, "inactive_title"),
+            get_option<int>(theme, "max_title_size"),
 
             get_option<std::string>(theme, "border_size"),
             get_option<wf::color_t>(theme, "active_border"),
@@ -82,7 +82,7 @@ class wayfire_firedecor_t :
             get_option<wf::color_t>(theme, "active_outline"),
             get_option<wf::color_t>(theme, "inactive_outline"),
 
-        	get_option<int>(theme, "button_size"),
+            get_option<int>(theme, "button_size"),
             get_option<std::string>(theme, "button_style"),
             get_option<wf::color_t>(theme, "normal_min"),
             get_option<wf::color_t>(theme, "hovered_min"),
@@ -92,16 +92,16 @@ class wayfire_firedecor_t :
             get_option<wf::color_t>(theme, "hovered_close"),
             get_option<bool>(theme, "inactive_buttons"),
 
-        	get_option<int>(theme, "icon_size"),
-        	get_option<std::string>(theme, "icon_theme"),
+            get_option<int>(theme, "icon_size"),
+            get_option<std::string>(theme, "icon_theme"),
 
             get_option<wf::color_t>(theme, "active_accent"),
             get_option<wf::color_t>(theme, "inactive_accent"),
 
-        	get_option<int>(theme, "padding_size"),
+            get_option<int>(theme, "padding_size"),
             get_option<std::string>(theme, "layout"),
 
-        	get_option<std::string>(theme, "ignore_views"),
+            get_option<std::string>(theme, "ignore_views"),
             get_option<bool>(theme, "debug_mode"),
             get_option<std::string>(theme, "round_on")
         };
@@ -109,36 +109,35 @@ class wayfire_firedecor_t :
     }
 
     void update_view_decoration(wayfire_view view) {
-	    if (view->should_be_decorated() && !ignore_views.matches(view)) {
-		    if (output->activate_plugin(grab_interface)) {
-			    idle_deactivate.run_once([this] () {
-				    output->deactivate_plugin(grab_interface);
-			    });
-    		    std::stringstream themes{extra_themes.value()};
-    		    std::string theme;
-    		    while (themes >> theme) {
-        		    try {
-            		    wf::view_matcher_t matcher{theme + "/uses_if"};
-            		    if (matcher.matches(view)) {
-                		    wf::firedecor::init_view(view, get_options(theme));
-                		    return;
-            		    }
-         		    } catch (...) {
-         		    }
-    		    }
-			    wf::firedecor::init_view(view, get_options("invalid"));
-		    }
-	    } else {
-		    wf::firedecor::deinit_view(view);
-	    }
+        fprintf(stderr, "FIREDECOR: update_view_decoration()\n");
+        if (view->should_be_decorated() && !ignore_views.matches(view)) {
+	    /*if (output->activate_plugin(grab_interface)) {
+		    idle_deactivate.run_once([this] () {
+			    output->deactivate_plugin(grab_interface);
+		    });*/
+            std::stringstream themes{extra_themes.value()};
+            std::string theme;
+            while (themes >> theme) {
+                try {
+                    wf::view_matcher_t matcher{theme + "/uses_if"};
+                    if (matcher.matches(view)) {
+                        wf::firedecor::init_view(view, get_options(theme));
+                        return;
+                    }
+                } catch (...) {
+                }
+            }
+            wf::firedecor::init_view(view, get_options("invalid"));
+        } else {
+            wf::firedecor::deinit_view(view);
+        }
     }
 
     void fini() override {
-        for (auto& view : output->workspace->get_views_in_layer(wf::ALL_LAYERS)) {
+        for (auto view : wf::get_core().get_all_views()) {
             wf::firedecor::deinit_view(view);
         }
     }
 };
-}
 
 DECLARE_WAYFIRE_PLUGIN(wayfire_firedecor_t);

@@ -10,6 +10,8 @@
 #include <wayfire/decorator.hpp>
 #include <wayfire/view-transform.hpp>
 #include <wayfire/signal-definitions.hpp>
+#include <wayfire/scene-operations.hpp>
+#include <wayfire/scene.hpp>
 
 #include "firedecor-layout.hpp"
 #include "firedecor-theme.hpp"
@@ -29,36 +31,35 @@
 
 namespace wf::firedecor {
 
-class simple_decoration_surface : public surface_interface_t,
-	public compositor_surface_t {
-	bool _mapped = true;
+class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_interaction_t
+{
     wayfire_view view;
 
-    signal_connection_t title_set = [=, this] (signal_data_t *data) {
-        if (get_signaled_view(data) == view) {
+    wf::signal::connection_t<wf::view_title_changed_signal> title_set = [=, this] (wf::view_title_changed_signal *ev) {
+        if (ev->view == view) {
             update_layout(FORCE);
             view->damage(); // trigger re-render
         }
     };
 
     void update_title(double scale) {
-		dimensions_t title_size = {
-    		(int)(title.dims.width * scale), (int)(title.dims.height * scale)
+        dimensions_t title_size = {
+            (int)(title.dims.width * scale), (int)(title.dims.height * scale)
         };
-		dimensions_t dots_size = {
-    		(int)(title.dots_dims.width * scale),
-    		(int)(title.dots_dims.height * scale)
+        dimensions_t dots_size = {
+            (int)(title.dots_dims.width * scale),
+            (int)(title.dots_dims.height * scale)
         };
 
-		auto o = HORIZONTAL;
-		std::string text = title.text;
-		int count = 0;
-		wf::dimensions_t size = title_size;
+        auto o = HORIZONTAL;
+        std::string text = title.text;
+        int count = 0;
+        wf::dimensions_t size = title_size;
 
         for (auto texture : { title.hor, title.ver,
                         title.hor_dots, title.ver_dots }) {
             for (auto state : { ACTIVE, INACTIVE }) {
-        		cairo_surface_t *surface;
+                cairo_surface_t *surface;
                 surface = theme.form_title(text, size, state, o);
                 cairo_surface_upload_to_texture(surface, texture[state]);
                 cairo_surface_destroy(surface); 
@@ -76,9 +77,9 @@ class simple_decoration_surface : public surface_interface_t,
 
     void update_icon() {
         if (view->get_app_id() != icon.app_id) {
-	        icon.app_id = view->get_app_id();
-	        auto surface = theme.form_icon(icon.app_id);
-	        cairo_surface_upload_to_texture(surface, icon.texture);
+            icon.app_id = view->get_app_id();
+            auto surface = theme.form_icon(icon.app_id);
+            cairo_surface_upload_to_texture(surface, icon.texture);
             cairo_surface_destroy(surface);
         }
     }
@@ -87,34 +88,34 @@ class simple_decoration_surface : public surface_interface_t,
         if ((title.colors != theme.get_title_colors()) || force) {
             /** Updating the cached variables */
             title.colors = theme.get_title_colors();
-	        title.text = (theme.get_debug_mode()) ? "a" : view->get_title();
+            title.text = (theme.get_debug_mode()) ? "a" : view->get_title();
 
-	        wf::dimensions_t cur_size = theme.get_text_size(title.text, size.width);
+            wf::dimensions_t cur_size = theme.get_text_size(title.text, size.width);
 
-	        if (theme.get_debug_mode()) {
-    	        title.text = view->get_app_id() + " " +
-    	                     std::to_string(cur_size.height) + "px";
-    	        cur_size = theme.get_text_size(title.text, size.width);
-	        }
+            if (theme.get_debug_mode()) {
+                title.text = view->get_app_id() + " " +
+                             std::to_string(cur_size.height) + "px";
+                cur_size = theme.get_text_size(title.text, size.width);
+            }
 
-	        title.dims.height = cur_size.height;
+            title.dims.height = cur_size.height;
 
-	        if (cur_size.width <= theme.get_max_title_size()) {
-    	        title.dims.width = cur_size.width;
-    	        title.too_big = false;
-    	        title.dots_dims = { 0, 0 };
-	        } else {
+            if (cur_size.width <= theme.get_max_title_size()) {
+                title.dims.width = cur_size.width;
+                title.too_big = false;
+                title.dots_dims = { 0, 0 };
+            } else {
                 wf::dimensions_t dots_size = theme.get_text_size("...", size.width);
 
-    	        title.dims.width = theme.get_max_title_size() - dots_size.width;
-    	        title.too_big = true;
-    	        title.dots_dims = dots_size;
-	        }
+                title.dims.width = theme.get_max_title_size() - dots_size.width;
+                title.too_big = true;
+                title.dots_dims = dots_size;
+            }
 
-		    title_needs_update = true;
+            title_needs_update = true;
 
             /** Necessary in order to immediately place areas correctly */
-    		layout.resize(size.width, size.height, title.dims, title.dots_dims);
+            layout.resize(size.width, size.height, title.dims, title.dots_dims);
         }
 
     }
@@ -133,16 +134,16 @@ class simple_decoration_surface : public surface_interface_t,
 
     /** Icon variables */
     struct {
-	    simple_texture_t texture;
-	    std::string app_id = "";
+        simple_texture_t texture;
+        std::string app_id = "";
     } icon;
 
     /** Corner variables */
     struct corner_texture_t {
-	    simple_texture_t tex[2];
-	    cairo_surface_t *surf[2];
-	    geometry_t g;
-	    int r;
+        simple_texture_t tex[2];
+        cairo_surface_t *surf[2];
+        geometry_t g;
+        int r;
     };
 
     struct {
@@ -151,7 +152,7 @@ class simple_decoration_surface : public surface_interface_t,
 
     /** Edge variables */
     struct edge_colors_t {
-	    color_set_t border, outline;
+        color_set_t border, outline;
     } edges;
 
     /** Accent variables */
@@ -169,77 +170,74 @@ class simple_decoration_surface : public surface_interface_t,
     region_t cached_region;
     dimensions_t size;
 
-	void update_corners(edge_colors_t colors, int corner_radius, double scale) {
-		if ((this->corner_radius != corner_radius) ||
-			(edges.border != colors.border) ||
-			(edges.outline != colors.outline)) {
-    		corners.tr.r = corners.tl.r = corners.bl.r = corners.br.r = 0;
+    void update_corners(edge_colors_t colors, int corner_radius, double scale) {
+        if ((this->corner_radius != corner_radius) ||
+            (edges.border != colors.border) ||
+            (edges.outline != colors.outline)) {
+            corners.tr.r = corners.tl.r = corners.bl.r = corners.br.r = 0;
 
-    		std::stringstream round_on_str(theme.get_round_on());
-    		std::string corner;
-    		while (round_on_str >> corner) {
-        		if (corner == "all") {
-            		corners.tr.r = corners.tl.r = corners.bl.r = corners.br.r
-        		                 = theme.get_corner_radius() * scale;
-            		break;
-        		} else if (corner == "tr") {
-            		corners.tr.r = (theme.get_corner_radius() * scale);
-        		} else if (corner == "tl") {
-            		corners.tl.r = (theme.get_corner_radius() * scale);
-        		} else if (corner == "bl") {
-            		corners.bl.r = (theme.get_corner_radius() * scale);
-        		} else if (corner == "br") {
-            		corners.br.r = (theme.get_corner_radius() * scale);
-        		}
-    		}
-    		int height = std::max( { corner_radius, border_size.top,
-    		                         border_size.bottom });
-    		auto create_s_and_t = [&](corner_texture_t& t, matrix<double> m, int r) {
-        		for (auto a : { ACTIVE, INACTIVE }) {
-            		t.surf[a] = theme.form_corner(a, r, m, height);
-        			cairo_surface_upload_to_texture(t.surf[a], t.tex[a]);
-        		}
-    		};
-    		/** The transformations are how we create 4 different corners */
-    		create_s_and_t(corners.tr, { scale, 0, 0, scale }, corners.tr.r);
-    		create_s_and_t(corners.tl, { -scale, 0, 0, scale }, corners.tl.r);
-    		create_s_and_t(corners.bl, { -scale, 0, 0, -scale }, corners.bl.r);
-    		create_s_and_t(corners.br, { scale, 0, 0, -scale }, corners.br.r);
+            std::stringstream round_on_str(theme.get_round_on());
+            std::string corner;
+            while (round_on_str >> corner) {
+                if (corner == "all") {
+                    corners.tr.r = corners.tl.r = corners.bl.r = corners.br.r
+                                 = theme.get_corner_radius() * scale;
+                    break;
+                } else if (corner == "tr") {
+                    corners.tr.r = (theme.get_corner_radius() * scale);
+                } else if (corner == "tl") {
+                    corners.tl.r = (theme.get_corner_radius() * scale);
+                } else if (corner == "bl") {
+                    corners.bl.r = (theme.get_corner_radius() * scale);
+                } else if (corner == "br") {
+                    corners.br.r = (theme.get_corner_radius() * scale);
+                }
+            }
+            int height = std::max( { corner_radius, border_size.top,
+                                     border_size.bottom });
+            auto create_s_and_t = [&](corner_texture_t& t, matrix<double> m, int r) {
+                for (auto a : { ACTIVE, INACTIVE }) {
+                    t.surf[a] = theme.form_corner(a, r, m, height);
+                    cairo_surface_upload_to_texture(t.surf[a], t.tex[a]);
+                }
+            };
+            /** The transformations are how we create 4 different corners */
+            create_s_and_t(corners.tr, { scale, 0, 0, scale }, corners.tr.r);
+            create_s_and_t(corners.tl, { -scale, 0, 0, scale }, corners.tl.r);
+            create_s_and_t(corners.bl, { -scale, 0, 0, -scale }, corners.bl.r);
+            create_s_and_t(corners.br, { scale, 0, 0, -scale }, corners.br.r);
 
-    		corners.tr.g = { size.width - corner_radius, 0,
-    		                     corner_radius, height };
-    		corners.tl.g = { 0, 0, corner_radius, height };
-    		corners.bl.g = { 0, size.height - height, corner_radius, height };
-    		corners.br.g = { size.width - corner_radius, size.height - height,
-    		                     corner_radius, height };
+            corners.tr.g = { size.width - corner_radius, 0,
+                                 corner_radius, height };
+            corners.tl.g = { 0, 0, corner_radius, height };
+            corners.bl.g = { 0, size.height - height, corner_radius, height };
+            corners.br.g = { size.width - corner_radius, size.height - height,
+                                 corner_radius, height };
 
-			edges.border.active    = colors.border.active;
-			edges.border.inactive  = colors.border.inactive;
-			edges.outline.active   = colors.outline.active;
-			edges.outline.inactive = colors.outline.inactive;
-			this->corner_radius    = corner_radius;
-		}
-	}
+            edges.border.active    = colors.border.active;
+            edges.border.inactive  = colors.border.inactive;
+            edges.outline.active   = colors.outline.active;
+            edges.outline.inactive = colors.outline.inactive;
+            this->corner_radius    = corner_radius;
+        }
+    }
 
   public:
     border_size_t border_size;
     int corner_radius;
 
-    simple_decoration_surface(wayfire_view view, theme_options options)
-      : theme{options}, 
-    	layout{theme, [=, this] (wlr_box box) {this->damage_surface_box(box); }} {
+    simple_decoration_node_t(wayfire_view view, theme_options options)
+      : node_t(false),
+        theme{options},
+        layout{theme, [=, this] (wlr_box box) { wf::scene::damage_node(shared_from_this(), box + get_offset()); }} {
         this->view = view;
-        view->connect_signal("title-changed", &title_set);
+        view->connect(&title_set);
 
         // make sure to hide frame if the view is fullscreen
         update_decoration_size();
     }
-    
-    virtual bool is_mapped() const final {
-        return _mapped;
-    }
 
-    point_t get_offset() final {
+    point_t get_offset() {
         return { -border_size.left, -border_size.top };
     }
 
@@ -247,46 +245,108 @@ class simple_decoration_surface : public surface_interface_t,
         return size;
     }
 
+    class decoration_render_instance_t : public wf::scene::render_instance_t
+    {
+    simple_decoration_node_t *self;
+        wf::scene::damage_callback push_damage;
+        wf::signal::connection_t<wf::scene::node_damage_signal> on_surface_damage =
+            [=] (wf::scene::node_damage_signal *data)
+        {
+            push_damage(data->region);
+        };
+
+      public:
+        decoration_render_instance_t(simple_decoration_node_t *self, wf::scene::damage_callback push_damage)
+        {
+            this->self = self;
+            this->push_damage = push_damage;
+            self->connect(&on_surface_damage);
+        }
+
+    void schedule_instructions(std::vector<wf::scene::render_instruction_t>& instructions,
+            const wf::render_target_t& target, wf::region_t& damage) override
+        {
+            auto our_region = self->cached_region + self->get_offset();
+            wf::region_t our_damage = damage & our_region;
+            if (!our_damage.empty())
+            {
+                instructions.push_back(wf::scene::render_instruction_t{
+                    .instance = this,
+                    .target   = target,
+                    .damage   = std::move(our_damage),
+                });
+            }
+        }
+
+        void render(const wf::render_target_t& target,
+            const wf::region_t& region) override
+        {
+            // FIXME
+            //region_t frame = this->cached_region + (point_t){x, y};
+            //frame &= damage;
+
+            //update_layout(DONT_FORCE);
+
+            int h = std::max({ self->corner_radius, self->border_size.top, self->border_size.bottom });
+            self->corners.tr.g = { self->size.width - self->corner_radius, 0, self->corner_radius, h };
+            self->corners.bl.g = { 0, self->size.height - h, self->corner_radius, h };
+            self->corners.br.g = { self->size.width - self->corner_radius,
+                             self->size.height - h, self->corner_radius, h };
+
+            for (const auto& box : region)
+            {
+                self->render_scissor_box(target, self->get_offset(), wlr_box_from_pixman_box(box));
+            }
+        }
+    };
+
+    void gen_render_instances(std::vector<wf::scene::render_instance_uptr>& instances,
+        wf::scene::damage_callback push_damage, wf::output_t *output = nullptr) override
+    {
+        instances.push_back(std::make_unique<decoration_render_instance_t>(this, push_damage));
+    }
+    
+
     void render_title(const render_target_t& fb, geometry_t geometry,
                       geometry_t dots_geometry, edge_t edge, geometry_t scissor) {
-	    if (title_needs_update) {
-    	    update_title(fb.scale);
-	    }
+        if (title_needs_update) {
+            update_title(fb.scale);
+        }
 
-	    simple_texture_t *texture, *dots_texture;
-	    uint32_t bits = 0;
-	    if (edge == EDGE_TOP || edge == EDGE_BOTTOM) {
-	        bits = OpenGL::TEXTURE_TRANSFORM_INVERT_Y;
-	        texture = &title.hor[view->activated];
-	        dots_texture = &title.hor_dots[view->activated];
-	    } else {
-    	    texture = &title.ver[view->activated];
-	        dots_texture = &title.ver_dots[view->activated];
-	    }
+        simple_texture_t *texture, *dots_texture;
+        uint32_t bits = 0;
+        if (edge == EDGE_TOP || edge == EDGE_BOTTOM) {
+            bits = OpenGL::TEXTURE_TRANSFORM_INVERT_Y;
+            texture = &title.hor[view->activated];
+            dots_texture = &title.hor_dots[view->activated];
+        } else {
+            texture = &title.ver[view->activated];
+            dots_texture = &title.ver_dots[view->activated];
+        }
 
-		OpenGL::render_begin(fb);
+        OpenGL::render_begin(fb);
         fb.logic_scissor(scissor);
         OpenGL::render_texture(texture->tex, fb, geometry, glm::vec4(1.0f), bits);
-        std::ofstream test{"/home/mateus/Development/wayfire-firedecor/test", std::ofstream::app};
-        test << "title: " << geometry << std::endl;
+        //std::ofstream test{"/home/mateus/Development/wayfire-firedecor/test", std::ofstream::app};
+        //test << "title: " << geometry << std::endl;
         if (title.too_big) {
             OpenGL::render_texture(dots_texture->tex, fb, dots_geometry,
                                    glm::vec4(1.0f), bits);
         }
-		OpenGL::render_end();
+        OpenGL::render_end();
     }
 
     void render_icon(const render_target_t& fb, geometry_t g,
                      const geometry_t& scissor, int32_t bits) {
         update_icon();
-		OpenGL::render_begin(fb);
-		fb.logic_scissor(scissor);
-		OpenGL::render_texture(icon.texture.tex, fb, g, glm::vec4(1.0f), bits);
-		OpenGL::render_end();
+        OpenGL::render_begin(fb);
+        fb.logic_scissor(scissor);
+        OpenGL::render_texture(icon.texture.tex, fb, g, glm::vec4(1.0f), bits);
+        OpenGL::render_end();
     }
 
     color_t alpha_trans(color_t c) {
-	    return { c.r * c.a, c.g * c.a, c.b * c.a, c.a };
+        return { c.r * c.a, c.g * c.a, c.b * c.a, c.a };
     }
 
     void form_accent_corners(int r, geometry_t accent, std::string corner_style,
@@ -612,9 +672,9 @@ class simple_decoration_surface : public surface_interface_t,
             color_t color = (view->activated) ? 
                             alpha_trans(theme.get_border_colors().active) :
                             alpha_trans(theme.get_border_colors().inactive);
-    		color_t o_color = (view->activated) ? 
-    	                      alpha_trans(theme.get_outline_colors().active) :
-    		                  alpha_trans(theme.get_outline_colors().inactive);
+            color_t o_color = (view->activated) ? 
+                              alpha_trans(theme.get_outline_colors().active) :
+                              alpha_trans(theme.get_outline_colors().inactive);
 
             wf::geometry_t g_o;
             int o_s = theme.get_outline_size();
@@ -642,44 +702,44 @@ class simple_decoration_surface : public surface_interface_t,
         }
     }
 
-	void render_background(const render_target_t& fb, geometry_t rect,
-	                       const geometry_t& scissor) {
-		edge_colors_t colors = {
-			theme.get_border_colors(), theme.get_outline_colors()
-		};
+    void render_background(const render_target_t& fb, geometry_t rect,
+                           const geometry_t& scissor) {
+        edge_colors_t colors = {
+            theme.get_border_colors(), theme.get_outline_colors()
+        };
 
-		colors.border.active = alpha_trans(colors.border.active);
-		colors.border.inactive = alpha_trans(colors.border.inactive);
+        colors.border.active = alpha_trans(colors.border.active);
+        colors.border.inactive = alpha_trans(colors.border.inactive);
 
-		int r = theme.get_corner_radius() * fb.scale;
-		update_corners(colors, r, fb.scale);
+        int r = theme.get_corner_radius() * fb.scale;
+        update_corners(colors, r, fb.scale);
 
-		/** Borders */
-		unsigned long i = 0;
-		point_t rect_o = { rect.x, rect.y };
-		for (auto area : layout.get_background_areas()) {
-    		render_background_area(fb, area->get_geometry(), rect_o, scissor,
-    		                       area->get_corners(), i, area->get_type(),
-    		                       area->get_m(), area->get_edge());
-    		i++;
-		}
+        /** Borders */
+        unsigned long i = 0;
+        point_t rect_o = { rect.x, rect.y };
+        for (auto area : layout.get_background_areas()) {
+            render_background_area(fb, area->get_geometry(), rect_o, scissor,
+                                   area->get_corners(), i, area->get_type(),
+                                   area->get_m(), area->get_edge());
+            i++;
+        }
 
-		OpenGL::render_begin(fb);
-		fb.logic_scissor(scissor);
+        OpenGL::render_begin(fb);
+        fb.logic_scissor(scissor);
 
-		/** Outlines */
+        /** Outlines */
         bool a = view->activated;
         point_t o = { rect.x, rect.y };
-		/** Rendering all corners */
-		for (auto *c : { &corners.tr, &corners.tl, &corners.bl, &corners.br }) {
-    		OpenGL::render_texture(c->tex[a].tex, fb, c->g + o, glm::vec4(1.0f));
-		}
-		OpenGL::render_end();
-	}
+        /** Rendering all corners */
+        for (auto *c : { &corners.tr, &corners.tl, &corners.bl, &corners.br }) {
+            OpenGL::render_texture(c->tex[a].tex, fb, c->g + o, glm::vec4(1.0f));
+        }
+        OpenGL::render_end();
+    }
 
     void render_scissor_box(const render_target_t& fb, point_t origin,
                             const wlr_box& scissor) {
-	    /** Draw the background (corners and border) */
+        /** Draw the background (corners and border) */
         wlr_box geometry{origin.x, origin.y, size.width, size.height};
         render_background(fb, geometry, scissor);
 
@@ -691,64 +751,56 @@ class simple_decoration_surface : public surface_interface_t,
             } else if (item->get_edge() == EDGE_RIGHT) {
                 bits = OpenGL::TEXTURE_TRANSFORM_INVERT_X;
             }
-	        if (item->get_type() == DECORATION_AREA_TITLE) {
+            if (item->get_type() == DECORATION_AREA_TITLE) {
                 render_title(fb, item->get_geometry() + origin,
-                			 item->get_dots_geometry() + origin, item->get_edge(),
+                             item->get_dots_geometry() + origin, item->get_edge(),
                              scissor);
             } else if (item->get_type() == DECORATION_AREA_BUTTON) {
-	            item->as_button().set_active(view->activated);
-	            item->as_button().set_maximized(view->tiled_edges);
+                item->as_button().set_active(view->activated);
+                item->as_button().set_maximized(view->tiled_edges);
                 item->as_button().render(fb, item->get_geometry() + origin, scissor);
             } else if (item->get_type() == DECORATION_AREA_ICON) {
-	            render_icon(fb, item->get_geometry() + origin, scissor, bits);
+                render_icon(fb, item->get_geometry() + origin, scissor, bits);
             }
         }
     }
     
-    virtual void simple_render(const render_target_t& fb, int x, int y,
-					           const region_t& damage) override {
-        region_t frame = this->cached_region + (point_t){x, y};
-        frame &= damage;
 
-    	update_layout(DONT_FORCE);
-
-        int h = std::max({ corner_radius, border_size.top, border_size.bottom });
-        corners.tr.g = { size.width - corner_radius, 0, corner_radius, h };
-        corners.bl.g = { 0, size.height - h, corner_radius, h };
-        corners.br.g = { size.width - corner_radius,
-                             size.height - h, corner_radius, h };
-
-        for (const auto& box : frame) {
-            render_scissor_box(fb, {x, y}, wlr_box_from_pixman_box(box));
-        }
+    pointer_interaction_t& pointer_interaction() override
+    {
+        return *this;
     }
 
-    bool accepts_input(int32_t sx, int32_t sy) override {
+    // FIXME
+    bool accepts_input(int32_t sx, int32_t sy) {
         return pixman_region32_contains_point(cached_region.to_pixman(),
             sx, sy, NULL);
     }
 
-    virtual void on_pointer_enter(int x, int y) override {
-        layout.handle_motion(x, y);
+    /* wf::compositor_surface_t implementation */
+    void handle_pointer_enter(wf::pointf_t point) override {
+        point -= wf::pointf_t{get_offset()};
+        layout.handle_motion(point.x, point.y);
     }
 
-    virtual void on_pointer_leave() override {
+    void handle_pointer_leave() override {
         layout.handle_focus_lost();
     }
 
-    virtual void on_pointer_motion(int x, int y) override {
-        handle_action(layout.handle_motion(x, y));
+    void handle_pointer_motion(wf::pointf_t to, uint32_t) override {
+        to -= wf::pointf_t{get_offset()};
+        handle_action(layout.handle_motion(to.x, to.y));
     }
 
-    virtual void on_pointer_button(uint32_t button, uint32_t state) override {
-        if (button != BTN_LEFT) {
+    void handle_pointer_button(const wlr_pointer_button_event& ev) override {
+        if (ev.button != BTN_LEFT) {
             return;
         }
 
-        handle_action(layout.handle_press_event(state == WLR_BUTTON_PRESSED));
+        handle_action(layout.handle_press_event(ev.state == WLR_BUTTON_PRESSED));
     }
 
-	// TODO: implement a pinning button.
+    // TODO: implement a pinning button.
     void handle_action(decoration_layout_t::action_response_t action) {
         switch (action.action) {
           case DECORATION_ACTION_MOVE:
@@ -778,7 +830,7 @@ class simple_decoration_surface : public surface_interface_t,
         }
     }
 
-    virtual void on_touch_down(int x, int y) override {
+    /*virtual void on_touch_down(int x, int y) override {
         layout.handle_motion(x, y);
         handle_action(layout.handle_press_event());
     }
@@ -790,17 +842,12 @@ class simple_decoration_surface : public surface_interface_t,
     virtual void on_touch_up() override {
         handle_action(layout.handle_press_event(false));
         layout.handle_focus_lost();
-    }
-
-    void unmap() {
-        _mapped = false;
-        emit_map_state_change(this);
-    }
+    }*/
 
     void resize(dimensions_t dims) {
         view->damage();
         size = dims;
-		layout.resize(size.width, size.height, title.dims, title.dots_dims);
+        layout.resize(size.width, size.height, title.dims, title.dots_dims);
         if (!view->fullscreen) {
             this->cached_region = layout.calculate_region();
         }
@@ -821,23 +868,25 @@ class simple_decoration_surface : public surface_interface_t,
 
 class simple_decorator_t : public decorator_frame_t_t {
     wayfire_view view;
-    nonstd::observer_ptr<simple_decoration_surface> deco;
+    std::shared_ptr<simple_decoration_node_t> deco;
 
   public:
     simple_decorator_t(wayfire_view view, theme_options options) {
         this->view = view;
 
-        auto sub = std::make_unique<simple_decoration_surface>(view, options);
-        deco = {sub};
-        view->add_subsurface(std::move(sub), true);
+        deco = std::make_shared<simple_decoration_node_t>(view, options);
+        //deco = {sub};
+        //view->add_subsurface(std::move(sub), true);
+
+        wf::scene::add_front(view->get_surface_root_node(), deco);
         view->damage();
-        view->connect_signal("subsurface-removed", &on_subsurface_removed);
     }
 
     ~simple_decorator_t() {
         if (deco) {
             // subsurface_removed unmaps it
-            view->remove_subsurface(deco);
+            //view->remove_subsurface(deco);
+            wf::scene::remove_child(deco);
         }
     }
 
@@ -846,21 +895,22 @@ class simple_decorator_t : public decorator_frame_t_t {
     simple_decorator_t& operator =(const simple_decorator_t&) = delete;
     simple_decorator_t& operator =(simple_decorator_t&&) = delete;
 
-    signal_connection_t on_subsurface_removed = [&] (auto data) {
+    // FIXME
+    /*wf::signal::connection_t<wf::subsurface_removed_signal> on_subsurface_removed = [&] (auto data) {
         auto ev = static_cast<subsurface_removed_signal*>(data);
         if (ev->subsurface.get() == deco.get()) {
             deco->unmap();
             deco = nullptr;
         }
-    };
+    };*/
 
     virtual geometry_t expand_wm_geometry( geometry_t contained_wm_geometry) override {
         contained_wm_geometry.x     -= deco->border_size.left;
         contained_wm_geometry.y     -= deco->border_size.top;
         contained_wm_geometry.width += deco->border_size.left +
-        	deco->border_size.right;
+            deco->border_size.right;
         contained_wm_geometry.height += deco->border_size.top +
-        	deco->border_size.bottom;
+            deco->border_size.bottom;
 
         return contained_wm_geometry;
     }
@@ -868,7 +918,7 @@ class simple_decorator_t : public decorator_frame_t_t {
     // TODO: Minimum size must fit buttons, icon, a truncated title, and corners.
     virtual void calculate_resize_size( int& target_width, int& target_height) override {
         target_width  -= deco->border_size.left +
-        	deco->border_size.right;
+            deco->border_size.right;
         target_height -= deco->border_size.top + deco->border_size.bottom;
 
         target_width  = std::max(target_width, 1);
@@ -876,7 +926,7 @@ class simple_decorator_t : public decorator_frame_t_t {
     }
 
     virtual void notify_view_activated(bool active) override {
-	    (void)active;
+        (void)active;
         view->damage();
     }
 
