@@ -285,7 +285,7 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
             //region_t frame = this->cached_region + (point_t){x, y};
             //frame &= damage;
 
-            //update_layout(DONT_FORCE);
+            self->update_layout(DONT_FORCE);
 
             int h = std::max({ self->corner_radius, self->border_size.top, self->border_size.bottom });
             self->corners.tr.g = { self->size.width - self->corner_radius, 0, self->corner_radius, h };
@@ -969,6 +969,7 @@ class simple_decorator_t : public decorator_frame_t_t {
 };
 
 void init_view(wayfire_view view, theme_options options) {
+    fprintf(stderr, "FIREDECOR: init_view()\n");
     auto firedecor = std::make_unique<simple_decorator_t>(view, options);
     view->set_decoration(std::move(firedecor));
 }
