@@ -305,7 +305,17 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
     {
         instances.push_back(std::make_unique<decoration_render_instance_t>(this, push_damage));
     }
-    
+
+    wf::geometry_t get_bounding_box() override
+    {
+        if (view->fullscreen)
+        {
+            return view->get_wm_geometry();
+        } else
+        {
+            return wf::construct_box(get_offset(), size);
+        }
+    }
 
     void render_title(const render_target_t& fb, geometry_t geometry,
                       geometry_t dots_geometry, edge_t edge, geometry_t scissor) {
@@ -764,7 +774,20 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
             }
         }
     }
-    
+
+    std::optional<wf::scene::input_node_t> find_node_at(const wf::pointf_t& at) override
+    {
+        wf::pointf_t local = at - wf::pointf_t{get_offset()};
+        if (cached_region.contains_pointf(local))
+        {
+            return wf::scene::input_node_t{
+                .node = this,
+                .local_coords = local,
+            };
+        }
+
+        return {};
+    }
 
     pointer_interaction_t& pointer_interaction() override
     {
@@ -953,5 +976,6 @@ void init_view(wayfire_view view, theme_options options) {
 void deinit_view(wayfire_view view) {
     view->set_decoration(nullptr);
 }
-}
 
+// namespace
+}
