@@ -23,6 +23,9 @@ enum button_type_t {
 };
 
 class button_t {
+    // texture needs updating
+    bool texture_dirty;
+
   public:
     /**
      * Create a new button with the given theme.
@@ -102,7 +105,7 @@ class button_t {
     /**
      * Redraw the button surface and store it as a texture
      */
-    void update_texture();
+    void update_texture(double scale);
 };
 }
 }

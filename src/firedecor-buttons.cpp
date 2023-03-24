@@ -11,12 +11,13 @@
 namespace wf {
 namespace firedecor {
 button_t::button_t(const decoration_theme_t& t, std::function<void()> damage) : 
-				   theme(t), damage_callback(damage) {}
+                   theme(t), damage_callback(damage) {
+    this->texture_dirty = true;
+}
 
 void button_t::set_button_type(button_type_t type) {
     this->type = type;
     this->hover.animate(0, 0);
-    update_texture();
     add_idle_damage();
 }
 
@@ -25,19 +26,17 @@ button_type_t button_t::get_button_type() const {
 }
 
 void button_t::set_active(bool active) {
-	if (this->active != active) {
-		this->active = active;
-	    update_texture();
-	    add_idle_damage();
-	}
+    if (this->active != active) {
+        this->active = active;
+        add_idle_damage();
+    }
 }
 
 void button_t::set_maximized(uint32_t edges) {
-	if (this->maximized != (edges == wf::TILED_EDGES_ALL)) {
-		this->maximized = (edges == wf::TILED_EDGES_ALL);
-	    update_texture();
-	    add_idle_damage();
-	}
+    if (this->maximized != (edges == wf::TILED_EDGES_ALL)) {
+        this->maximized = (edges == wf::TILED_EDGES_ALL);
+        add_idle_damage();
+    }
 }
 
 void button_t::set_hover(bool is_hovered) {
@@ -50,7 +49,6 @@ void button_t::set_hover(bool is_hovered) {
         }
     }
 
-	update_texture();
     add_idle_damage();
 }
 
@@ -70,7 +68,12 @@ void button_t::set_pressed(bool is_pressed) {
 }
 
 void button_t::render(const wf::render_target_t& fb, wf::geometry_t geometry,
-    				  wf::geometry_t scissor) {
+                      wf::geometry_t scissor) {
+
+    if (this->texture_dirty) {
+        update_texture(fb.scale);
+    }
+
     OpenGL::render_begin(fb);
     fb.logic_scissor(scissor);
     OpenGL::render_texture(button_texture.tex, fb, geometry, {1, 1, 1, 1},
@@ -82,18 +85,19 @@ void button_t::render(const wf::render_target_t& fb, wf::geometry_t geometry,
     }
 }
 
-void button_t::update_texture() {
-    auto surface = theme.form_button(type, hover, active, maximized);
+void button_t::update_texture(double scale) {
+    auto surface = theme.form_button(type, hover, active, maximized, scale);
     OpenGL::render_begin();
     cairo_surface_upload_to_texture(surface, this->button_texture);
     OpenGL::render_end();
     cairo_surface_destroy(surface);
+    this->texture_dirty = false;
 }
 
 void button_t::add_idle_damage() {
     this->idle_damage.run_once([=] () {
         this->damage_callback();
-        update_texture();
+        this->texture_dirty = true;
     });
 }
 }

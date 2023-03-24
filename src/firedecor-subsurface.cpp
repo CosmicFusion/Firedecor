@@ -17,10 +17,7 @@
 #include "firedecor-theme.hpp"
 
 #include "cairo-simpler.hpp"
-
 #include <wayfire/plugins/common/cairo-util.hpp>
-
-//#include <cairo.h>
 
 #define INACTIVE 0
 #define ACTIVE 1
@@ -56,11 +53,12 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
         int count = 0;
         wf::dimensions_t size = title_size;
 
+        fprintf(stderr, "  update_title: %d %d\n", size.width, size.height);
         for (auto texture : { title.hor, title.ver,
                         title.hor_dots, title.ver_dots }) {
             for (auto state : { ACTIVE, INACTIVE }) {
                 cairo_surface_t *surface;
-                surface = theme.form_title(text, size, state, o);
+                surface = theme.form_title(text, size, state, o, scale);
                 cairo_surface_upload_to_texture(surface, texture[state]);
                 cairo_surface_destroy(surface); 
             }
@@ -75,10 +73,10 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
         title_needs_update = false;
     }
 
-    void update_icon() {
+    void update_icon(double scale) {
         if (view->get_app_id() != icon.app_id) {
             icon.app_id = view->get_app_id();
-            auto surface = theme.form_icon(icon.app_id);
+            auto surface = theme.form_icon(icon.app_id, scale);
             cairo_surface_upload_to_texture(surface, icon.texture);
             cairo_surface_destroy(surface);
         }
@@ -90,12 +88,12 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
             title.colors = theme.get_title_colors();
             title.text = (theme.get_debug_mode()) ? "a" : view->get_title();
 
-            wf::dimensions_t cur_size = theme.get_text_size(title.text, size.width);
+            wf::dimensions_t cur_size = theme.get_text_size(title.text, size.width, 1.0); // FIXME
 
             if (theme.get_debug_mode()) {
                 title.text = view->get_app_id() + " " +
                              std::to_string(cur_size.height) + "px";
-                cur_size = theme.get_text_size(title.text, size.width);
+                cur_size = theme.get_text_size(title.text, size.width, 1.0); // FIXME
             }
 
             title.dims.height = cur_size.height;
@@ -105,7 +103,7 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
                 title.too_big = false;
                 title.dots_dims = { 0, 0 };
             } else {
-                wf::dimensions_t dots_size = theme.get_text_size("...", size.width);
+                wf::dimensions_t dots_size = theme.get_text_size("...", size.width, 1.0); // FIXME
 
                 title.dims.width = theme.get_max_title_size() - dots_size.width;
                 title.too_big = true;
@@ -117,7 +115,6 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
             /** Necessary in order to immediately place areas correctly */
             layout.resize(size.width, size.height, title.dims, title.dots_dims);
         }
-
     }
 
     /** Title variables */
@@ -337,8 +334,6 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
         OpenGL::render_begin(fb);
         fb.logic_scissor(scissor);
         OpenGL::render_texture(texture->tex, fb, geometry, glm::vec4(1.0f), bits);
-        //std::ofstream test{"/home/mateus/Development/wayfire-firedecor/test", std::ofstream::app};
-        //test << "title: " << geometry << std::endl;
         if (title.too_big) {
             OpenGL::render_texture(dots_texture->tex, fb, dots_geometry,
                                    glm::vec4(1.0f), bits);
@@ -348,7 +343,7 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
 
     void render_icon(const render_target_t& fb, geometry_t g,
                      const geometry_t& scissor, int32_t bits) {
-        update_icon();
+        update_icon(fb.scale);
         OpenGL::render_begin(fb);
         fb.logic_scissor(scissor);
         OpenGL::render_texture(icon.texture.tex, fb, g, glm::vec4(1.0f), bits);
@@ -628,7 +623,7 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
                                 std::string rounded, unsigned long i,
                                 decoration_area_type_t type, matrix<int> m,
                                 edge_t edge) {
-        /** The view's origin */                            
+        /** The view's origin */
         point_t o = { rect.x, rect.y };
 
         if (type == DECORATION_AREA_ACCENT) {
@@ -692,14 +687,16 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
                 g_o = { g.x, g.y, g.width, o_s };
                 g = { g.x, g.y + o_s, g.width, g.height - o_s };
             } else if (edge == wf::firedecor::EDGE_LEFT) {
-                g_o = { g.x, g.y, o_s, g.height };
-                g = { g.x + o_s, g.y, g.width - o_s, g.height };
+                // the g.y + is probably not correct, but works for now
+                g_o = { g.x, g.y, o_s, g.y + g.height };
+                g = { g.x + o_s, g.y, g.width - o_s, g.y + g.height };
             } else if (edge == wf::firedecor::EDGE_BOTTOM) {
                 g_o = { g.x, g.y + g.height - o_s, g.width, o_s };
                 g = { g.x, g.y, g.width, g.height - o_s };
             } else if (edge == wf::firedecor::EDGE_RIGHT) {
-                g_o = { g.x + g.width - o_s, g.y, o_s, g.height };
-                g = { g.x, g.y, g.width - o_s, g.height };
+                // the g.y + is probably not correct, but works for now
+                g_o = { g.x + g.width - o_s, g.y, o_s, g.y + g.height };
+                g = { g.x, g.y, g.width - o_s, g.y + g.height };
             }
             g_o = g_o + o;
 
@@ -727,6 +724,9 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
         /** Borders */
         unsigned long i = 0;
         point_t rect_o = { rect.x, rect.y };
+
+        //fprintf(stderr, "  render_background: o: %d %d\n", rect.x, rect.y);
+
         for (auto area : layout.get_background_areas()) {
             render_background_area(fb, area->get_geometry(), rect_o, scissor,
                                    area->get_corners(), i, area->get_type(),
@@ -901,7 +901,7 @@ class simple_decorator_t : public decorator_frame_t_t {
         //deco = {sub};
         //view->add_subsurface(std::move(sub), true);
 
-        wf::scene::add_front(view->get_surface_root_node(), deco);
+        wf::scene::add_back(view->get_surface_root_node(), deco);
         view->damage();
     }
 
@@ -917,15 +917,6 @@ class simple_decorator_t : public decorator_frame_t_t {
     simple_decorator_t(simple_decorator_t &&) = delete;
     simple_decorator_t& operator =(const simple_decorator_t&) = delete;
     simple_decorator_t& operator =(simple_decorator_t&&) = delete;
-
-    // FIXME
-    /*wf::signal::connection_t<wf::subsurface_removed_signal> on_subsurface_removed = [&] (auto data) {
-        auto ev = static_cast<subsurface_removed_signal*>(data);
-        if (ev->subsurface.get() == deco.get()) {
-            deco->unmap();
-            deco = nullptr;
-        }
-    };*/
 
     virtual geometry_t expand_wm_geometry( geometry_t contained_wm_geometry) override {
         contained_wm_geometry.x     -= deco->border_size.left;

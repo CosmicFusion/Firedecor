@@ -162,14 +162,14 @@ class decoration_theme_t : private theme_options {
      * Get what the title size should be, given a text for the title, useful for
      * centered and right positioned layouts on an edge.
      */
-	wf::dimensions_t get_text_size(std::string title, int width) const;
+	wf::dimensions_t get_text_size(std::string title, int width, double scale) const;
 
     /**
      * Render the given text on a cairo_surface_t with the given size.
      * The caller is responsible for freeing the memory afterwards.
      */
     cairo_surface_t *form_title(std::string text, wf::dimensions_t title_size,
-                                bool active, orientation_t orientation) const;
+                                bool active, orientation_t orientation, double scale) const;
 
     /**
      * Render the corners for active and inactive windows. 
@@ -190,7 +190,7 @@ class decoration_theme_t : private theme_options {
      * @param state The button state.
      */
     cairo_surface_t *form_button(button_type_t button, double hover,
-                                 bool active, bool maximized) const;
+                                 bool active, bool maximized, double scale) const;
 
 	/**
 	 * Gets a cairo surface with an svg texture.
@@ -207,7 +207,7 @@ class decoration_theme_t : private theme_options {
      * Get the icon for the given application icon.
      * @param title The icon for the window.
      */
-    cairo_surface_t *form_icon(std::string app_id) const;
+    cairo_surface_t *form_icon(std::string app_id, double scale) const;
 };
 }
 }

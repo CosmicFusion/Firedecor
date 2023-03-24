@@ -100,7 +100,7 @@ std::string decoration_theme_t::get_round_on() const {
     return round_on.get_value();
 }
 
-wf::dimensions_t decoration_theme_t::get_text_size(std::string text, int width) const {
+wf::dimensions_t decoration_theme_t::get_text_size(std::string text, int width, double scale) const {
     const auto format = CAIRO_FORMAT_ARGB32;
     auto surface = cairo_image_surface_create(format, width, font_size.get_value());
     auto cr = cairo_create(surface);
@@ -110,7 +110,7 @@ wf::dimensions_t decoration_theme_t::get_text_size(std::string text, int width) 
     PangoRectangle text_size;
 
     font_desc = pango_font_description_from_string(((std::string)font.get_value()).c_str());
-    pango_font_description_set_absolute_size(font_desc, font_size.get_value() * PANGO_SCALE);
+    pango_font_description_set_absolute_size(font_desc, font_size.get_value() * PANGO_SCALE * scale);
     layout = pango_cairo_create_layout(cr);
     pango_layout_set_font_description(layout, font_desc);
     pango_layout_set_text(layout, text.c_str(), text.size());
@@ -124,7 +124,7 @@ wf::dimensions_t decoration_theme_t::get_text_size(std::string text, int width) 
 }
 
 cairo_surface_t* decoration_theme_t::form_title(std::string text,
-    wf::dimensions_t title_size, bool active, orientation_t orientation) const {
+    wf::dimensions_t title_size, bool active, orientation_t orientation, double scale) const {
     const auto format = CAIRO_FORMAT_ARGB32;
     cairo_surface_t* surface;
     if (orientation == HORIZONTAL) {
@@ -150,7 +150,7 @@ cairo_surface_t* decoration_theme_t::form_title(std::string text,
     
     // render text
     font_desc = pango_font_description_from_string(((std::string)font.get_value()).c_str());
-    pango_font_description_set_absolute_size(font_desc, font_size.get_value() * PANGO_SCALE);
+    pango_font_description_set_absolute_size(font_desc, font_size.get_value() * PANGO_SCALE * scale);
 
     layout = pango_cairo_create_layout(cr);
     pango_layout_set_font_description(layout, font_desc);
@@ -216,7 +216,7 @@ cairo_surface_t *decoration_theme_t::form_corner(bool active, int r,
 }
 
 cairo_surface_t *decoration_theme_t::form_button(button_type_t button, double hover,
-                                                 bool active, bool maximized) const {
+                                                 bool active, bool maximized, double scale) const {
 	if ((std::string)button_style.get_value() != "wayfire" &&
 		(std::string)button_style.get_value() != "firedecor" &&
 	    (std::string)button_style.get_value() != "simple") {
@@ -252,9 +252,9 @@ cairo_surface_t *decoration_theme_t::form_button(button_type_t button, double ho
             assert(false);
         }
         if (auto full_path = path + "png"; exists(full_path)) {
-            return surface_png(full_path, button_size.get_value());
+            return surface_png(full_path, button_size.get_value() * scale);
         } else if (auto full_path = path + "svg"; exists(full_path)) {
-            return surface_svg(full_path, button_size.get_value());
+            return surface_svg(full_path, button_size.get_value() * scale);
         }
 	}
 
@@ -530,7 +530,7 @@ std::string get_from_desktop(std::string path, std::string var) {
 	}
 }
 
-cairo_surface_t *decoration_theme_t::form_icon(std::string app_id) const {
+cairo_surface_t *decoration_theme_t::form_icon(std::string app_id, double scale) const {
 	std::string line;
 	std::string icons = (std::string)getenv("HOME") + "/.local/share/firedecor_icons";
 	std::ofstream icon_file_out(icons, std::ofstream::out | std::ofstream::app);
@@ -546,9 +546,9 @@ cairo_surface_t *decoration_theme_t::form_icon(std::string app_id) const {
 			if (line.find(app_id + " ") == 0) {
 				std::string path = line.substr(line.find(' ') + 1);
 				if (line.rfind(".svg") != std::string::npos) {
-					return surface_svg(path, icon_size.get_value());
+					return surface_svg(path, icon_size.get_value() * scale);
 				} else if (line.rfind(".png") != std::string::npos) {
-    				return surface_png(path, icon_size.get_value());
+    				return surface_png(path, icon_size.get_value() * scale);
 				}
 			}
 		}
