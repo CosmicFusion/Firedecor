@@ -3,7 +3,6 @@
 #include <string>
 #include <wayfire/util.hpp>
 #include <wayfire/opengl.hpp>
-#include <wayfire/surface.hpp>
 #include <wayfire/render-manager.hpp>
 #include <wayfire/view.hpp>
 #include <wayfire/util/duration.hpp>

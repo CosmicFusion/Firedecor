@@ -3,7 +3,6 @@
 #include <linux/input-event-codes.h>
 
 #include <wayfire/nonstd/wlroots.hpp>
-#include <wayfire/compositor-surface.hpp>
 #include <wayfire/output.hpp>
 #include <wayfire/opengl.hpp>
 #include <wayfire/core.hpp>
