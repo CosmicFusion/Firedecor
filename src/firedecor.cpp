@@ -15,17 +15,17 @@ class wayfire_firedecor_t : public wf::plugin_interface_t, private wf::per_outpu
     wf::option_wrapper_t<std::string> extra_themes{"firedecor/extra_themes"};
     wf::config::config_manager_t& config = wf::get_core().config;
 
-    wf::signal::connection_t<wf::view_mapped_signal> view_mapped = [=] (wf::view_mapped_signal *ev) {
+    wf::signal::connection_t<wf::view_mapped_signal> view_mapped = [=, this] (wf::view_mapped_signal *ev) {
         fprintf(stderr, "FIREDECOR: view_mapped()\n");
         update_view_decoration(ev->view);
     };
 
-    wf::signal::connection_t<wf::view_decoration_changed_signal> view_changed = [=] (wf::view_decoration_changed_signal *ev) {
+    wf::signal::connection_t<wf::view_decoration_changed_signal> view_changed = [=, this] (wf::view_decoration_changed_signal *ev) {
         fprintf(stderr, "FIREDECOR: view_decoration_changed()\n");
         update_view_decoration(ev->view);
     };
 
-    wf::signal::connection_t<wf::view_decoration_state_updated_signal> view_updated = [=] (wf::view_decoration_state_updated_signal *ev) {
+    wf::signal::connection_t<wf::view_decoration_state_updated_signal> view_updated = [=, this] (wf::view_decoration_state_updated_signal *ev) {
         fprintf(stderr, "FIREDECOR: view_decoration_state_updated()\n");
         update_view_decoration(ev->view);
     };
