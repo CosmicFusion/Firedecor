@@ -120,9 +120,6 @@ wf::dimensions_t decoration_theme_t::get_text_size(std::string text, int width, 
     cairo_destroy(cr);
     cairo_surface_destroy(surface);
 
-    fprintf(stderr, "  get_text_size: scale: %f width: %d width out: %d\n",
-        scale, width, text_size.width);
-
     // FIXME: tricky
     return { text_size.width / scale, text_size.height / scale };
 }
