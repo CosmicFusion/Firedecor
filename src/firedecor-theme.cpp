@@ -120,7 +120,11 @@ wf::dimensions_t decoration_theme_t::get_text_size(std::string text, int width, 
     cairo_destroy(cr);
     cairo_surface_destroy(surface);
 
-    return { text_size.width, text_size.height };
+    fprintf(stderr, "  get_text_size: scale: %f width: %d width out: %d\n",
+        scale, width, text_size.width);
+
+    // FIXME: tricky
+    return { text_size.width / scale, text_size.height / scale };
 }
 
 cairo_surface_t* decoration_theme_t::form_title(std::string text,
@@ -274,7 +278,6 @@ cairo_surface_t *decoration_theme_t::form_button(button_type_t button, double ho
 
 	color_t base, hovered;
     double line;
-    double base_qty;
 
     /** Coloured base on hover/press. Don't compare float to 0 */
     if (fabs(hover) > 1e-3 || (inactive_buttons.get_value() && active) ||
@@ -296,11 +299,9 @@ cairo_surface_t *decoration_theme_t::form_button(button_type_t button, double ho
             assert(false);
         }
         line = 0.54;
-        base_qty = 0.6;
     } else {
 	    base = { 0.40, 0.40, 0.43, 1.0 };
 	    line = 0.27;
-	    base_qty = 1.0;
     }
 	    
 

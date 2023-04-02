@@ -33,7 +33,7 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
 
     wf::signal::connection_t<wf::view_title_changed_signal> title_set = [=, this] (wf::view_title_changed_signal *ev) {
         if (ev->view == view) {
-            update_layout(FORCE);
+            title_changed = true;
             view->damage(); // trigger re-render
         }
     };
@@ -52,7 +52,6 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
         int count = 0;
         wf::dimensions_t size = title_size;
 
-        fprintf(stderr, "  update_title: %d %d\n", size.width, size.height);
         for (auto texture : { title.hor, title.ver,
                         title.hor_dots, title.ver_dots }) {
             for (auto state : { ACTIVE, INACTIVE }) {
@@ -81,19 +80,13 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
         }
     }
 
-    void update_layout(bool force) {
-        if ((title.colors != theme.get_title_colors()) || force) {
+    void update_layout(bool force, double scale) {
+        if ((title.colors != theme.get_title_colors()) || title_changed || force) {
             /** Updating the cached variables */
             title.colors = theme.get_title_colors();
-            title.text = (theme.get_debug_mode()) ? "a" : view->get_title();
+            title.text = view->get_title();
 
-            wf::dimensions_t cur_size = theme.get_text_size(title.text, size.width, 1.0); // FIXME
-
-            if (theme.get_debug_mode()) {
-                title.text = view->get_app_id() + " " +
-                             std::to_string(cur_size.height) + "px";
-                cur_size = theme.get_text_size(title.text, size.width, 1.0); // FIXME
-            }
+            wf::dimensions_t cur_size = theme.get_text_size(title.text, size.width, scale);
 
             title.dims.height = cur_size.height;
 
@@ -102,13 +95,14 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
                 title.too_big = false;
                 title.dots_dims = { 0, 0 };
             } else {
-                wf::dimensions_t dots_size = theme.get_text_size("...", size.width, 1.0); // FIXME
+                wf::dimensions_t dots_size = theme.get_text_size("...", size.width, scale);
 
                 title.dims.width = theme.get_max_title_size() - dots_size.width;
                 title.too_big = true;
                 title.dots_dims = dots_size;
             }
 
+            title_changed = false;
             title_needs_update = true;
 
             /** Necessary in order to immediately place areas correctly */
@@ -127,6 +121,7 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
     } title;
 
     bool title_needs_update = false;
+    bool title_changed = false;
 
     /** Icon variables */
     struct {
@@ -246,7 +241,7 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
     simple_decoration_node_t *self;
         wf::scene::damage_callback push_damage;
         wf::signal::connection_t<wf::scene::node_damage_signal> on_surface_damage =
-            [=] (wf::scene::node_damage_signal *data)
+            [=, this] (wf::scene::node_damage_signal *data)
         {
             push_damage(data->region);
         };
@@ -277,11 +272,7 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
         void render(const wf::render_target_t& target,
             const wf::region_t& region) override
         {
-            // FIXME
-            //region_t frame = this->cached_region + (point_t){x, y};
-            //frame &= damage;
-
-            self->update_layout(DONT_FORCE);
+            self->update_layout(DONT_FORCE, target.scale);
 
             int h = std::max({ self->corner_radius, self->border_size.top, self->border_size.bottom });
             self->corners.tr.g = { self->size.width - self->corner_radius, 0, self->corner_radius, h };
@@ -724,8 +715,6 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
         unsigned long i = 0;
         point_t rect_o = { rect.x, rect.y };
 
-        //fprintf(stderr, "  render_background: o: %d %d\n", rect.x, rect.y);
-
         for (auto area : layout.get_background_areas()) {
             render_background_area(fb, area->get_geometry(), rect_o, scissor,
                                    area->get_corners(), i, area->get_type(),
@@ -959,7 +948,6 @@ class simple_decorator_t : public decorator_frame_t_t {
 };
 
 void init_view(wayfire_view view, theme_options options) {
-    fprintf(stderr, "FIREDECOR: init_view()\n");
     auto firedecor = std::make_unique<simple_decorator_t>(view, options);
     view->set_decoration(std::move(firedecor));
 }
