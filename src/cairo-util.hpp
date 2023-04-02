@@ -35,12 +35,9 @@ static void cairo_surface_upload_to_texture(
     GL_CALL(glBindTexture(GL_TEXTURE_2D, buffer.tex));
     GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR));
     GL_CALL(glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR));
+    // instead of GLES3 SWIZZLE, use GLES2 GL_BGRA_EXT
     GL_CALL(glTexImage2D(GL_TEXTURE_2D, 0, GL_BGRA_EXT,
         buffer.width, buffer.height, 0, GL_BGRA_EXT, GL_UNSIGNED_BYTE, src));
-
-    //GL_CALL(glTexStorage2D(GL_TEXTURE_2D, 1, GL_BGRA8_EXT, buffer.width, buffer.height));
-    //GL_CALL(glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, buffer.width, buffer.height, GL_BGRA, GL_UNSIGNED_BYTE, src));
-
 }
 
 namespace wf
