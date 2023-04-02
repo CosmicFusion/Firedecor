@@ -16,7 +16,7 @@
 #include "firedecor-theme.hpp"
 
 #include "cairo-simpler.hpp"
-#include <wayfire/plugins/common/cairo-util.hpp>
+#include "cairo-util.hpp"
 
 #define INACTIVE 0
 #define ACTIVE 1

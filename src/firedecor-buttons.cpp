@@ -1,5 +1,4 @@
 #include <wayfire/opengl.hpp>
-#include <wayfire/plugins/common/cairo-util.hpp>
 
 #include "firedecor-buttons.hpp"
 #include "firedecor-theme.hpp"
