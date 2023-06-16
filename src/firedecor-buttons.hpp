@@ -7,7 +7,7 @@
 #include <wayfire/view.hpp>
 #include <wayfire/util/duration.hpp>
 #include <wayfire/plugins/common/simple-texture.hpp>
-#include <wayfire/plugins/common/cairo-util.hpp>
+#include "cairo-util.hpp"
 
 #include <cairo/cairo.h>
 

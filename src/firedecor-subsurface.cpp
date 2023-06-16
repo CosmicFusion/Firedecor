@@ -16,7 +16,7 @@
 #include "firedecor-theme.hpp"
 
 #include "cairo-simpler.hpp"
-#include <wayfire/plugins/common/cairo-util.hpp>
+#include "cairo-util.hpp"
 
 #define INACTIVE 0
 #define ACTIVE 1
@@ -33,9 +33,8 @@ namespace wf::firedecor {
 
     wf::signal::connection_t<wf::view_title_changed_signal> title_set = [=, this] (wf::view_title_changed_signal *ev) {
         if (ev->view == view) {
-            update_layout(FORCE);
-            // trigger re-render
-            view->damage();
+            title_changed = true;
+            view->damage(); // trigger re-render
         }
     };
 
@@ -53,7 +52,6 @@ namespace wf::firedecor {
         int count = 0;
         wf::dimensions_t size = title_size;
 
-        fprintf(stderr, "  update_title: %d %d\n", size.width, size.height);
         for (auto texture : { title.hor, title.ver,
                         title.hor_dots, title.ver_dots }) {
             for (auto state : { ACTIVE, INACTIVE }) {
@@ -82,19 +80,13 @@ namespace wf::firedecor {
         }
     }
 
-    void update_layout(bool force) {
-        if ((title.colors != theme.get_title_colors()) || force) {
+    void update_layout(bool force, double scale) {
+        if ((title.colors != theme.get_title_colors()) || title_changed || force) {
             /** Updating the cached variables */
             title.colors = theme.get_title_colors();
-            title.text = (theme.get_debug_mode()) ? "a" : view->get_title();
+            title.text = view->get_title();
 
-            wf::dimensions_t cur_size = theme.get_text_size(title.text, size.width, 1.0); // FIXME
-
-            if (theme.get_debug_mode()) {
-                title.text = view->get_app_id() + " " +
-                             std::to_string(cur_size.height) + "px";
-                cur_size = theme.get_text_size(title.text, size.width, 1.0); // FIXME
-            }
+            wf::dimensions_t cur_size = theme.get_text_size(title.text, size.width, scale);
 
             title.dims.height = cur_size.height;
 
@@ -103,13 +95,14 @@ namespace wf::firedecor {
                 title.too_big = false;
                 title.dots_dims = { 0, 0 };
             } else {
-                wf::dimensions_t dots_size = theme.get_text_size("...", size.width, 1.0); // FIXME
+                wf::dimensions_t dots_size = theme.get_text_size("...", size.width, scale);
 
                 title.dims.width = theme.get_max_title_size() - dots_size.width;
                 title.too_big = true;
                 title.dots_dims = dots_size;
             }
 
+            title_changed = false;
             title_needs_update = true;
 
             /** Necessary in order to immediately place areas correctly */
@@ -128,6 +121,7 @@ namespace wf::firedecor {
     } title;
 
     bool title_needs_update = false;
+    bool title_changed = false;
 
     /** Icon variables */
     struct {
@@ -247,7 +241,7 @@ namespace wf::firedecor {
     simple_decoration_node_t *self;
         wf::scene::damage_callback push_damage;
         wf::signal::connection_t<wf::scene::node_damage_signal> on_surface_damage =
-            [=,this] (wf::scene::node_damage_signal *data)
+            [=, this] (wf::scene::node_damage_signal *data)
         {
             push_damage(data->region);
         };
@@ -260,7 +254,7 @@ namespace wf::firedecor {
             self->connect(&on_surface_damage);
         }
 
-    void schedule_instructions(std::vector<wf::scene::render_instruction_t>& instructions,
+        void schedule_instructions(std::vector<wf::scene::render_instruction_t>& instructions,
             const wf::render_target_t& target, wf::region_t& damage) override
         {
             auto our_region = self->cached_region + self->get_offset();
@@ -278,11 +272,7 @@ namespace wf::firedecor {
         void render(const wf::render_target_t& target,
             const wf::region_t& region) override
         {
-            // FIXME
-            //region_t frame = this->cached_region + (point_t){x, y};
-            //frame &= damage;
-
-            self->update_layout(DONT_FORCE);
+            self->update_layout(DONT_FORCE, target.scale);
 
             int h = std::max({ self->corner_radius, self->border_size.top, self->border_size.bottom });
             self->corners.tr.g = { self->size.width - self->corner_radius, 0, self->corner_radius, h };
@@ -724,8 +714,6 @@ namespace wf::firedecor {
         /** Borders */
         unsigned long i = 0;
         point_t rect_o = { rect.x, rect.y };
-
-        //fprintf(stderr, "  render_background: o: %d %d\n", rect.x, rect.y);
 
         for (auto area : layout.get_background_areas()) {
             render_background_area(fb, area->get_geometry(), rect_o, scissor,
