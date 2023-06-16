@@ -10,7 +10,7 @@
 
 namespace wf {
 namespace firedecor {
-button_t::button_t(const decoration_theme_t& t, std::function<void()> damage) : 
+button_t::button_t(const decoration_theme_t& t, std::function<void()> damage) :
                    theme(t), damage_callback(damage) {
     this->texture_dirty = true;
 }
@@ -95,7 +95,7 @@ void button_t::update_texture(double scale) {
 }
 
 void button_t::add_idle_damage() {
-    this->idle_damage.run_once([=] () {
+    this->idle_damage.run_once([=, this] () {
         this->damage_callback();
         this->texture_dirty = true;
     });

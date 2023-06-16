@@ -1,7 +1,7 @@
 #include <wayfire/per-output-plugin.hpp>
 #include <wayfire/view.hpp>
 #include <wayfire/matcher.hpp>
-#include <wayfire/workspace-manager.hpp>
+#include <wayfire/workspace-set.hpp>
 #include <wayfire/output.hpp>
 #include <wayfire/signal-definitions.hpp>
 
@@ -15,53 +15,35 @@ class wayfire_firedecor_t : public wf::plugin_interface_t, private wf::per_outpu
     wf::option_wrapper_t<std::string> extra_themes{"firedecor/extra_themes"};
     wf::config::config_manager_t& config = wf::get_core().config;
 
-    wf::signal::connection_t<wf::view_mapped_signal> view_mapped = [=] (wf::view_mapped_signal *ev) {
-        fprintf(stderr, "FIREDECOR: view_mapped()\n");
+    wf::signal::connection_t<wf::view_mapped_signal> on_view_mapped = [=,this] (wf::view_mapped_signal *ev) {
         update_view_decoration(ev->view);
     };
 
-    wf::signal::connection_t<wf::view_decoration_changed_signal> view_changed = [=] (wf::view_decoration_changed_signal *ev) {
-        fprintf(stderr, "FIREDECOR: view_decoration_changed()\n");
+    wf::signal::connection_t<wf::view_decoration_changed_signal> on_view_changed = [=,this] (wf::view_decoration_changed_signal *ev) {
         update_view_decoration(ev->view);
     };
 
-    wf::signal::connection_t<wf::view_decoration_state_updated_signal> view_updated = [=] (wf::view_decoration_state_updated_signal *ev) {
-        fprintf(stderr, "FIREDECOR: view_decoration_state_updated()\n");
+    wf::signal::connection_t<wf::view_decoration_state_updated_signal> on_decoration_state_changed = [=,this] (wf::view_decoration_state_updated_signal *ev) {
         update_view_decoration(ev->view);
     };
 
   public:
 
     void init() override {
-        fprintf(stderr, "FIREDECOR: init()\n");
-        this->init_output_tracking();
-    }
+        wf::get_core().connect(&on_decoration_state_changed);
+        wf::get_core().connect(&on_view_mapped);
+        wf::get_core().connect(&on_view_changed);
 
-    void handle_new_output(wf::output_t *output) override {
-        fprintf(stderr, "FIREDECOR: handle_new_output()\n");
-
-        // subscribe to updates about new views to decorate
-        output->connect(&view_mapped);
-        output->connect(&view_changed);
-        output->connect(&view_updated);
-        for (auto& view : output->workspace->get_views_in_layer(wf::ALL_LAYERS)) {
+        for (auto& view : wf::get_core().get_all_views())
+        {
             update_view_decoration(view);
         }
     }
 
-    void handle_output_removed(wf::output_t *output) override
-    {
-        for (auto& view : output->workspace->get_views_in_layer(wf::ALL_LAYERS))
-        {
-            wf::firedecor::deinit_view(view);
-        }
-    }
-
-    wf::wl_idle_call idle_deactivate;
+    //wf::wl_idle_call idle_deactivate;
 
     template<typename T>
     T get_option(std::string theme, std::string option_name) {
-
         auto option = config.get_option<std::string>(theme + "/" + option_name);
         if (option == nullptr || theme == "invalid") {
             return config.get_option<T>("firedecor/" + option_name)->get_value();
@@ -114,9 +96,9 @@ class wayfire_firedecor_t : public wf::plugin_interface_t, private wf::per_outpu
     }
 
     void update_view_decoration(wayfire_view view) {
-        fprintf(stderr, "FIREDECOR: update_view_decoration()\n");
-        auto box = view->get_bounding_box();
-        fprintf(stderr, "  @%d %d  %d x %d\n", box.x, box.y, box.width, box.height);
+        //fprintf(stderr, "FIREDECOR: update_view_decoration()\n");
+        //auto box = view->get_bounding_box();
+        //fprintf(stderr, "  @%d %d  %d x %d\n", box.x, box.y, box.width, box.height);
         if (view->should_be_decorated() && !ignore_views.matches(view)) {
             std::stringstream themes{extra_themes.value()};
             std::string theme;
@@ -135,7 +117,7 @@ class wayfire_firedecor_t : public wf::plugin_interface_t, private wf::per_outpu
             }
             wf::firedecor::init_view(view, get_options("invalid"));
         } else {
-            fprintf(stderr, "  should be decorated: %d  ignored: %d\n", view->should_be_decorated(), ignore_views.matches(view));
+            //fprintf(stderr, "  should be decorated: %d  ignored: %d\n", view->should_be_decorated(), ignore_views.matches(view));
             wf::firedecor::deinit_view(view);
         }
     }

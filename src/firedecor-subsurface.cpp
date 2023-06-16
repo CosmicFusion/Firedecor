@@ -27,14 +27,15 @@
 
 namespace wf::firedecor {
 
-class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_interaction_t
+    class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_interaction_t, public wf::touch_interaction_t
 {
     wayfire_view view;
 
     wf::signal::connection_t<wf::view_title_changed_signal> title_set = [=, this] (wf::view_title_changed_signal *ev) {
         if (ev->view == view) {
             update_layout(FORCE);
-            view->damage(); // trigger re-render
+            // trigger re-render
+            view->damage();
         }
     };
 
@@ -59,11 +60,11 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
                 cairo_surface_t *surface;
                 surface = theme.form_title(text, size, state, o, scale);
                 cairo_surface_upload_to_texture(surface, texture[state]);
-                cairo_surface_destroy(surface); 
+                cairo_surface_destroy(surface);
             }
 
             o = (o == HORIZONTAL) ? VERTICAL : HORIZONTAL;
-            if (count == 1) { 
+            if (count == 1) {
                 text = "...";
                 size = dots_size;
             }
@@ -246,7 +247,7 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
     simple_decoration_node_t *self;
         wf::scene::damage_callback push_damage;
         wf::signal::connection_t<wf::scene::node_damage_signal> on_surface_damage =
-            [=] (wf::scene::node_damage_signal *data)
+            [=,this] (wf::scene::node_damage_signal *data)
         {
             push_damage(data->region);
         };
@@ -377,7 +378,7 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
         }
 
         wf::geometry_t cut;
-        if (m.xy == 0) { 
+        if (m.xy == 0) {
             cut = { accent.x + r, accent.y, accent.width - 2 * r, accent.height };
         } else {
             cut = { accent.x, accent.y + r, accent.width, accent.height - 2 * r };
@@ -394,14 +395,14 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
         /** Calculate where to retract, based on diagonality */
         for (int i = 0; auto c : corner_style) {
             if (c == '/') {
-                if (i == 0) { 
+                if (i == 0) {
                     retract.tl = r ;
                 } else {
                     retract.br = r;
                 }
                 i++;
             } else if (c == '\\') {
-                if (i == 0) { 
+                if (i == 0) {
                     retract.bl = r ;
                 } else {
                     retract.tr = r;
@@ -491,7 +492,7 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
         cairo_destroy(cr);
         cairo_surface_destroy(full_surface);
         /****/
-        
+
         for (int i = 0, j = 0; i < 4; i++, angle += M_PI / 2, j = i % 2) {
             if (i < 2) {
                 a_color = theme.get_accent_colors().inactive;
@@ -502,7 +503,7 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
             }
             int width = a_edges[j].width;
             int height = a_edges[j].height;
-                
+
             surfaces[i] = cairo_image_surface_create(format, width, height);
             auto cr_a = cairo_create(surfaces[i]);
 
@@ -513,9 +514,9 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
 
             /**** Outline, done early so it can also be cropped off */
             /** Translation to the correct rotation */
-            cairo_translate(cr_a , rotation_point); 
+            cairo_translate(cr_a , rotation_point);
             cairo_transform(cr_a , &matrix);
-            cairo_translate(cr_a , -rotation_point); 
+            cairo_translate(cr_a , -rotation_point);
 
             int o_size = theme.get_outline_size();
             auto outline_color = (view->activated) ?
@@ -543,7 +544,7 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
 
                 /**** Rectangle to cut the background from the accent's corner */
                 /** View's corner position relative to the accent's corner */
-                point_t v_rel_a = { 
+                point_t v_rel_a = {
                     c->g.x - a_edge.x, c->g.y - a_edge.y
                 };
 
@@ -568,9 +569,9 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
 
                     cairo_translate(cr_v, t_br_rel_v.x, t_br_rel_v.y);
 
-                    cairo_translate(cr_v , rotation_point); 
+                    cairo_translate(cr_v , rotation_point);
                     cairo_transform(cr_v , &matrix);
-                    cairo_translate(cr_v , -rotation_point); 
+                    cairo_translate(cr_v , -rotation_point);
 
                     cairo_append_path(cr_v, master_path);
                     cairo_fill(cr);
@@ -586,7 +587,7 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
                     cairo_rectangle(cr_v, reb_rel_v, cut.width, cut.height);
                     cairo_fill(cr_v);
                     /****/
-                            
+
                     cairo_surface_upload_to_texture(c->surf[active], c->tex[active]);
                     cairo_destroy(cr_v);
                 }
@@ -664,7 +665,7 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
                 accent_rect = { g.x, g.y + r, g.width, g.height - 2 * r };
             }
 
-            color_t color = (view->activated) ? 
+            color_t color = (view->activated) ?
                             alpha_trans(theme.get_accent_colors().active) :
                             alpha_trans(theme.get_accent_colors().inactive);
             OpenGL::render_rectangle(accent_rect + o, color,
@@ -673,10 +674,10 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
             OpenGL::render_end();
         } else {
             /**** Render a single rectangle when the area is a background */
-            color_t color = (view->activated) ? 
+            color_t color = (view->activated) ?
                             alpha_trans(theme.get_border_colors().active) :
                             alpha_trans(theme.get_border_colors().inactive);
-            color_t o_color = (view->activated) ? 
+            color_t o_color = (view->activated) ?
                               alpha_trans(theme.get_outline_colors().active) :
                               alpha_trans(theme.get_outline_colors().inactive);
 
@@ -756,7 +757,7 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
         for (auto item : renderables) {
             int32_t bits = 0;
             if (item->get_edge() == EDGE_LEFT) {
-                bits = OpenGL::TEXTURE_TRANSFORM_INVERT_Y; 
+                bits = OpenGL::TEXTURE_TRANSFORM_INVERT_Y;
             } else if (item->get_edge() == EDGE_RIGHT) {
                 bits = OpenGL::TEXTURE_TRANSFORM_INVERT_X;
             }
@@ -852,19 +853,23 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
         }
     }
 
-    /*virtual void on_touch_down(int x, int y) override {
-        layout.handle_motion(x, y);
+    void handle_touch_down(uint32_t time_ms, int finger_id, wf::pointf_t position) override
+    {
+        handle_touch_motion(time_ms, finger_id, position);
         handle_action(layout.handle_press_event());
     }
 
-    virtual void on_touch_motion(int x, int y) override {
-        handle_action(layout.handle_motion(x, y));
-    }
-
-    virtual void on_touch_up() override {
+    void handle_touch_up(uint32_t time_ms, int finger_id, wf::pointf_t lift_off_position) override
+    {
         handle_action(layout.handle_press_event(false));
         layout.handle_focus_lost();
-    }*/
+    }
+
+    void handle_touch_motion(uint32_t time_ms, int finger_id, wf::pointf_t position) override
+    {
+        position -= wf::pointf_t{get_offset()};
+        layout.handle_motion(position.x, position.y);
+    }
 
     void resize(dimensions_t dims) {
         view->damage();
@@ -873,7 +878,6 @@ class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_in
         if (!view->fullscreen) {
             this->cached_region = layout.calculate_region();
         }
-
         view->damage();
     }
 
@@ -892,74 +896,55 @@ class simple_decorator_t : public decorator_frame_t_t {
     wayfire_view view;
     std::shared_ptr<simple_decoration_node_t> deco;
 
+    wf::signal::connection_t<wf::view_activated_state_signal> on_view_activated = [&] (auto)
+    {
+        view->damage();
+    };
+
+    wf::signal::connection_t<wf::view_geometry_changed_signal> on_view_geometry_changed = [&] (auto)
+    {
+        deco->resize(wf::dimensions(view->get_wm_geometry()));
+    };
+
+    wf::signal::connection_t<wf::view_fullscreen_signal> on_view_fullscreen = [&] (auto)
+    {
+        deco->update_decoration_size();
+        if (!view->fullscreen) {
+            deco->resize(wf::dimensions(view->get_wm_geometry()));
+        }
+    };
+
   public:
     simple_decorator_t(wayfire_view view, theme_options options) {
         this->view = view;
 
         deco = std::make_shared<simple_decoration_node_t>(view, options);
-        //deco = {sub};
-        //view->add_subsurface(std::move(sub), true);
-
         wf::scene::add_back(view->get_surface_root_node(), deco);
-        view->damage();
+
+        view->connect(&on_view_activated);
+        view->connect(&on_view_geometry_changed);
+        view->connect(&on_view_fullscreen);
     }
 
     ~simple_decorator_t() {
         if (deco) {
-            // subsurface_removed unmaps it
-            //view->remove_subsurface(deco);
             wf::scene::remove_child(deco);
         }
     }
 
-    simple_decorator_t(const simple_decorator_t &) = delete;
-    simple_decorator_t(simple_decorator_t &&) = delete;
-    simple_decorator_t& operator =(const simple_decorator_t&) = delete;
-    simple_decorator_t& operator =(simple_decorator_t&&) = delete;
-
-    virtual geometry_t expand_wm_geometry( geometry_t contained_wm_geometry) override {
-        contained_wm_geometry.x     -= deco->border_size.left;
-        contained_wm_geometry.y     -= deco->border_size.top;
-        contained_wm_geometry.width += deco->border_size.left +
-            deco->border_size.right;
-        contained_wm_geometry.height += deco->border_size.top +
-            deco->border_size.bottom;
-
-        return contained_wm_geometry;
-    }
-
-    // TODO: Minimum size must fit buttons, icon, a truncated title, and corners.
-    virtual void calculate_resize_size( int& target_width, int& target_height) override {
-        target_width  -= deco->border_size.left +
-            deco->border_size.right;
-        target_height -= deco->border_size.top + deco->border_size.bottom;
-
-        target_width  = std::max(target_width, 1);
-        target_height = std::max(target_height, 1);
-    }
-
-    virtual void notify_view_activated(bool active) override {
-        (void)active;
-        view->damage();
-    }
-
-    virtual void notify_view_resized(geometry_t view_geometry) override {
-        deco->resize(dimensions(view_geometry));
-    }
-
-    virtual void notify_view_tiled() override {}
-
-    virtual void notify_view_fullscreen() override {
-        deco->update_decoration_size();
-
-        if (!view->fullscreen) {
-            notify_view_resized(view->get_wm_geometry());
-        }
+    /* frame implementation */
+    virtual wf::decoration_margins_t get_margins() override
+    {
+        return wf::decoration_margins_t{
+            .left   = deco->border_size.left,
+            .right  = deco->border_size.right,
+            .bottom = deco->border_size.bottom,
+            .top    = deco->border_size.top,
+        };
     }
 };
 
 void init_view(wayfire_view view, theme_options options) {
-    fprintf(stderr, "FIREDECOR: init_view()\n");
     auto firedecor = std::make_unique<simple_decorator_t>(view, options);
     view->set_decoration(std::move(firedecor));
 }

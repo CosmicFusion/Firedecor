@@ -23,7 +23,7 @@ decoration_theme_t::decoration_theme_t(wf::firedecor::theme_options options) :
     theme_options{options} {}
 
 std::string decoration_theme_t::get_layout() const {
-	return layout.get_value();
+    return layout.get_value();
 }
 
 /* Size return functions */
@@ -34,47 +34,47 @@ int decoration_theme_t::get_outline_size() const {
     return outline_size.get_value();
 }
 int decoration_theme_t::get_font_size() const {
-	return font_size.get_value();
+    return font_size.get_value();
 }
 int decoration_theme_t::get_max_title_size() const {
     return max_title_size.get_value();
 }
 int decoration_theme_t::get_corner_radius() const {
-	return corner_radius.get_value();
+    return corner_radius.get_value();
 }
 int decoration_theme_t::get_button_size() const {
-	return button_size.get_value();
+    return button_size.get_value();
 }
 int decoration_theme_t::get_icon_size() const {
-	return icon_size.get_value();
+    return icon_size.get_value();
 }
 int decoration_theme_t::get_padding_size() const {
-	return padding_size.get_value();
+    return padding_size.get_value();
 }
 
 /* Color return functions */
 color_set_t decoration_theme_t::get_border_colors() const {
-	return { active_border.get_value(), inactive_border.get_value() };
+    return { active_border.get_value(), inactive_border.get_value() };
 }
 color_set_t decoration_theme_t::get_outline_colors() const {
-	return { active_outline.get_value(), inactive_outline.get_value() };
+    return { active_outline.get_value(), inactive_outline.get_value() };
 }
 color_set_t decoration_theme_t::get_title_colors() const {
-	return { active_title.get_value(), inactive_title.get_value() };
+    return { active_title.get_value(), inactive_title.get_value() };
 }
 color_set_t decoration_theme_t::get_accent_colors() const {
-	return { active_accent.get_value(), inactive_accent.get_value() };
+    return { active_accent.get_value(), inactive_accent.get_value() };
 }
 
 /* Other return functions */
 bool decoration_theme_t::has_title_orientation(orientation_t orientation) const {
 	std::stringstream stream(layout.get_value());
 	std::string current_symbol;
-	
+
 	edge_t current_edge = EDGE_TOP;
 
 	while (stream >> current_symbol) {
-		if (current_symbol == "-") {
+  if (current_symbol == "-") {
 	        if (current_edge == EDGE_TOP) {
 		        current_edge = EDGE_LEFT;
 	        } else if (current_edge == EDGE_LEFT) {
@@ -104,7 +104,7 @@ wf::dimensions_t decoration_theme_t::get_text_size(std::string text, int width, 
     const auto format = CAIRO_FORMAT_ARGB32;
     auto surface = cairo_image_surface_create(format, width, font_size.get_value());
     auto cr = cairo_create(surface);
-	
+
     PangoFontDescription *font_desc;
     PangoLayout *layout;
     PangoRectangle text_size;
@@ -138,7 +138,7 @@ cairo_surface_t* decoration_theme_t::form_title(std::string text,
     wf::color_t color = (active) ? active_title.get_value() : inactive_title.get_value();
 
     auto cr = cairo_create(surface);
-    if (orientation == VERTICAL) { 
+    if (orientation == VERTICAL) {
 	    double radius = (double)title_size.width / 2;;
 	    cairo_translate(cr, radius, radius);
 	    cairo_rotate(cr, -M_PI / 2);
@@ -147,7 +147,7 @@ cairo_surface_t* decoration_theme_t::form_title(std::string text,
 
     PangoFontDescription *font_desc;
     PangoLayout *layout;
-    
+
     // render text
     font_desc = pango_font_description_from_string(((std::string)font.get_value()).c_str());
     pango_font_description_set_absolute_size(font_desc, font_size.get_value() * PANGO_SCALE * scale);
@@ -164,11 +164,11 @@ cairo_surface_t* decoration_theme_t::form_title(std::string text,
     return surface;
 }
 
-cairo_surface_t *decoration_theme_t::form_corner(bool active, int r, 
-                                                 matrix<double> m, 
+cairo_surface_t *decoration_theme_t::form_corner(bool active, int r,
+                                                 matrix<double> m,
                                                  int height) const {
     double c_r = corner_radius.get_value() * abs(m.xx);
-	double o_r = c_r - abs(m.xx) * (double)outline_size.get_value() / 2;
+    double o_r = c_r - abs(m.xx) * (double)outline_size.get_value() / 2;
 
     const auto format = CAIRO_FORMAT_ARGB32;
     auto *surface = cairo_image_surface_create(format, c_r, height);
@@ -180,7 +180,7 @@ cairo_surface_t *decoration_theme_t::form_corner(bool active, int r,
 
     cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
     /* Border */
-	wf::color_t color = active ? active_border.get_value() :
+    wf::color_t color = active ? active_border.get_value() :
                         inactive_border.get_value();
     cairo_set_source_rgba(cr, color.r, color.g, color.b, color.a);
     if (r > 0) {
@@ -196,7 +196,7 @@ cairo_surface_t *decoration_theme_t::form_corner(bool active, int r,
     }
 
     /* Outline */
-	color = active ? active_outline.get_value() : inactive_outline.get_value();
+    color = active ? active_outline.get_value() : inactive_outline.get_value();
     cairo_set_source_rgba(cr, color.r, color.g, color.b, color.a);
     cairo_set_line_width(cr, outline_size.get_value() * abs(m.xx));
     if (r > 0) {
@@ -226,20 +226,20 @@ cairo_surface_t *decoration_theme_t::form_button(button_type_t button, double ho
 		std::string status;
 		std::string path;
 
-		if (hover == 0.0) {
-			if (!active && inactive_buttons.get_value()) {
-				status = "-inactive.";
-			} else {
-				status = ".";
-			}
-		} else if (hover < 0.0) {
-			status = "-pressed.";
-		} else {
-			status = "-hovered.";
-		}
-			
-        switch (button) {
-          case BUTTON_CLOSE:
+    if (hover == 0.0) {
+        if (!active && inactive_buttons.get_value()) {
+            status = "-inactive.";
+        } else {
+            status = ".";
+        }
+    } else if (hover < 0.0) {
+        status = "-pressed.";
+    } else {
+        status = "-hovered.";
+    }
+
+    switch (button) {
+        case BUTTON_CLOSE:
 	        path = directory + "close" + status;
             break;
           case BUTTON_TOGGLE_MAXIMIZE:
@@ -256,7 +256,7 @@ cairo_surface_t *decoration_theme_t::form_button(button_type_t button, double ho
         } else if (auto full_path = path + "svg"; exists(full_path)) {
             return surface_svg(full_path, button_size.get_value() * scale);
         }
-	}
+	  }
 
     cairo_surface_t *button_surface = cairo_image_surface_create(
         CAIRO_FORMAT_ARGB32, button_size.get_value(), button_size.get_value());
@@ -272,9 +272,8 @@ cairo_surface_t *decoration_theme_t::form_button(button_type_t button, double ho
 
     cairo_set_operator(cr, CAIRO_OPERATOR_OVER);
 
-	color_t base, hovered;
+	  color_t base, hovered;
     double line;
-    double base_qty;
 
     /** Coloured base on hover/press. Don't compare float to 0 */
     if (fabs(hover) > 1e-3 || (inactive_buttons.get_value() && active) ||
@@ -296,13 +295,10 @@ cairo_surface_t *decoration_theme_t::form_button(button_type_t button, double ho
             assert(false);
         }
         line = 0.54;
-        base_qty = 0.6;
     } else {
 	    base = { 0.40, 0.40, 0.43, 1.0 };
 	    line = 0.27;
-	    base_qty = 1.0;
     }
-	    
 
     /** Draw the base */
     cairo_set_source_rgba(cr,
@@ -383,7 +379,7 @@ cairo_surface_t *decoration_theme_t::form_button(button_type_t button, double ho
                   north_east_arrow_pos = { 0.563 * button_size.get_value(), 0.437 * button_size.get_value() };
                   south_west_arrow_pos = { 0.437 * button_size.get_value(), 0.563 * button_size.get_value() };
               }
-                  
+
               /* Top right arrow */
               cairo_move_to(cr, north_east_arrow_pos.x, north_east_arrow_pos.y);
               cairo_rel_move_to(cr, -0.175 * button_size.get_value() * hover,
@@ -470,7 +466,7 @@ cairo_surface_t *decoration_theme_t::surface_svg(std::string path, int  size) co
     cairo_set_source_surface(cr, surface_rsvg, 0, 0);
     cairo_paint(cr);
 	cairo_surface_destroy(surface_rsvg);
-    
+
 	cairo_destroy(cr);
 
 	g_object_unref(svg);
@@ -536,7 +532,7 @@ cairo_surface_t *decoration_theme_t::form_icon(std::string app_id, double scale)
 	std::ofstream icon_file_out(icons, std::ofstream::out | std::ofstream::app);
 
 	while (true) {
-    	/** 
+    	/**
          * First, check if the icon has already been found,
          * this will be true the vast majority of the time,
          * drastically improving speed.
@@ -658,7 +654,7 @@ cairo_surface_t *decoration_theme_t::form_icon(std::string app_id, double scale)
     		    std::count(default_icon_themes.begin(), default_icon_themes.end(),
     		               dir) == 0) {
         		if (exists(dir)) {
-            		icon_themes.push_back(dir + "/"); 
+            		icon_themes.push_back(dir + "/");
         		}
     		}
 		}
@@ -672,7 +668,7 @@ cairo_surface_t *decoration_theme_t::form_icon(std::string app_id, double scale)
         /** Look for the icons on every folder, on every resolution */
 		bool icon_found = false;
 		for (auto path : icon_themes) {
-    		for (auto res : { 
+    		for (auto res : {
         			"scalable/", "32x32/", "48x48/", "72x72/", "96x96/",
     				"128x128/", "256x256/"
     		}) {
@@ -683,7 +679,7 @@ cairo_surface_t *decoration_theme_t::form_icon(std::string app_id, double scale)
                     		icon_found = true;
                     		icon_file_out << app_id + " " + icon_path << std::endl;
                     		break;
-                		} 
+                		}
             		}
         		}
         		if (icon_found) { break; }
@@ -699,12 +695,12 @@ cairo_surface_t *decoration_theme_t::form_icon(std::string app_id, double scale)
             		icon_found = true;
             		icon_file_out << app_id + " " + icon_path << std::endl;
             		break;
-        		} 
+        		}
         		if (icon_found) { break; }
     		}
     		if (icon_found) { break; }
 		}
-    		
+
 
 		if (!icon_found) {
     		std::string icon_path = " /usr/local/share/firedecor/executable.svg";

@@ -37,7 +37,7 @@ struct decoration_area_t {
   public:
     /**
      * Initialize a new decoration area holding an icon.
-     * 
+     *
      * @param type The type of the area.
      * @param g The geometry of the area.
      * @param edge The edge where this area is placed.
@@ -46,7 +46,7 @@ struct decoration_area_t {
 
     /**
      * Initialize a new decoration area holding a title.
-     * 
+     *
      * @param g The geometry of the title area.
      * @param g_dots The geometry of the dots area.
      * @param edge The edge where this area is placed.
@@ -161,7 +161,7 @@ class decoration_layout_t {
     decoration_layout_t(const decoration_theme_t& theme,
         std::function<void(wlr_box)> damage_callback);
 
-    /** 
+    /**
      * Translate the border into four numbers, representing the top, left, bottom, and right border sizes, respectively.
      */
     border_size_t parse_border(std::string border_size);
@@ -211,14 +211,14 @@ class decoration_layout_t {
     void handle_focus_lost();
 
   private:
-	const std::string layout;
-	const std::string border_size_str;
-	const border_size_t border_size;
-	const int corner_radius;
-	const int outline_size;
-	const int button_size;
-	const int icon_size;
-	const int padding_size;
+    const std::string layout;
+    const std::string border_size_str;
+    const border_size_t border_size;
+    const int corner_radius;
+    const int outline_size;
+    const int button_size;
+    const int icon_size;
+    const int padding_size;
 
     const decoration_theme_t& theme;
 
@@ -236,7 +236,7 @@ class decoration_layout_t {
     /* Last position of the input */
     wf::point_t current_input;
     /* double-click timer */
-    wf::wl_timer timer;
+    wf::wl_timer<false> timer;
     bool double_click_at_release = false;
 
     /** Calculate resize edges based on @current_input */
