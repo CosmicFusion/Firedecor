@@ -165,7 +165,7 @@ void decoration_layout_t::create_areas(int width, int height,
 	/** "Height" of the current edge, that is, the border_size */
 	int edge_height = border_size.top;
 
-    /** The cutoff lenghts for the background */ 
+    /** The cutoff lengths for the background */
     int corner_h = std::max({ border_size.top, border_size.bottom, corner_radius });
 	/****/
 
@@ -178,30 +178,30 @@ void decoration_layout_t::create_areas(int width, int height,
         	int counter = 0;
 	        for (auto vec : { left, center, right }) {
 				if (vec != left) {
-			        int region_lenght = 0;
+			        int region_length = 0;
 
 			        for (auto type : vec) {
 				       if (type == "title")	{
-					       region_lenght += title_size.width;
+					       region_length += title_size.width;
 				       } else if (type == "icon") {
-					       region_lenght += icon_size;
+					       region_length += icon_size;
 				       } else if (type == "p") {
-					       region_lenght += padding_size;
+					       region_length += padding_size;
 				       } else if (type[0] == 'P') {
 					       int delta;
 					       std::stringstream num;
 					       num << type.substr(1);
 					       num >> delta;
-					       region_lenght += delta;
+					       region_length += delta;
 				       } else if (type != "a" && type[0] != 'A') {
-					       region_lenght += button_size;
+					       region_length += button_size;
 				       }
 			        }
 
 					if (vec == center) {
-				        shift = (abs(trans(l).x) - region_lenght) / 2;
+				        shift = (abs(trans(l).x) - region_length) / 2;
 					} else {
-				        shift = abs(trans(l).x) - region_lenght;
+				        shift = abs(trans(l).x) - region_length;
 					}
 				} else {
 					shift = 0;
@@ -214,7 +214,7 @@ void decoration_layout_t::create_areas(int width, int height,
 			        if (type == "title") {
 				        delta = title_size.width + dots.x;
 				        out_padding = (max_height - title_size.height) / 2;
-				        cur_g = { 
+				        cur_g = {
 					        o.x + trans(p()).x, o.y + trans(p()).y,
 				            trans(title).x, trans(title).y
 				        };
@@ -263,7 +263,7 @@ void decoration_layout_t::create_areas(int width, int height,
 			        } else {
 				        delta = button_size;
 				        out_padding = (max_height - button_size) / 2;
-				        cur_g = { 
+				        cur_g = {
 					       	o.x + trans(p()).x, o.y + trans(p()).y,
 					       	(m.xx + m.xy) * button_size, (m.yx + m.yy) * button_size
 				       	};
@@ -275,7 +275,7 @@ void decoration_layout_t::create_areas(int width, int height,
 				        layout_areas.push_back(std::make_unique<decoration_area_t>(
 						        cur_g, damage_callback, theme));
 				        layout_areas.back()->as_button().set_button_type(button);
-					}			        
+					}
 
 					shift += delta;
 		        }
@@ -330,7 +330,7 @@ void decoration_layout_t::create_areas(int width, int height,
 	        center.clear();
 	        right.clear();
 	        current_position = "left";
-		        
+
         } else {
 	        if (current_position == "left") {
 		        left.push_back(current_symbol);
@@ -340,7 +340,7 @@ void decoration_layout_t::create_areas(int width, int height,
 		        right.push_back(current_symbol);
 	        }
         }
-        
+
     }
 }
 
@@ -379,7 +379,7 @@ void decoration_layout_t::resize(int width, int height, wf::dimensions_t title_s
 	    this->layout_areas.push_back(std::make_unique<decoration_area_t>(
 		    DECORATION_AREA_MOVE, g));
     }
-    
+
     /* Resizing edges - top */
     wf::geometry_t border_geometry = { 0, 0, width, top_resize };
     this->layout_areas.push_back(std::make_unique<decoration_area_t>(
