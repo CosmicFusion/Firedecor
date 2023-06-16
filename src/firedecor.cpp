@@ -15,24 +15,24 @@ class wayfire_firedecor_t : public wf::plugin_interface_t, private wf::per_outpu
     wf::option_wrapper_t<std::string> extra_themes{"firedecor/extra_themes"};
     wf::config::config_manager_t& config = wf::get_core().config;
 
-    wf::signal::connection_t<wf::view_mapped_signal> view_mapped = [=, this] (wf::view_mapped_signal *ev) {
+    wf::signal::connection_t<wf::view_mapped_signal> on_view_mapped = [=, this] (wf::view_mapped_signal *ev) {
         update_view_decoration(ev->view);
     };
 
-    wf::signal::connection_t<wf::view_decoration_changed_signal> view_changed = [=, this] (wf::view_decoration_changed_signal *ev) {
+    wf::signal::connection_t<wf::view_decoration_changed_signal> on_view_decoration_changed = [=, this] (wf::view_decoration_changed_signal *ev) {
         update_view_decoration(ev->view);
     };
 
-    wf::signal::connection_t<wf::view_decoration_state_updated_signal> view_updated = [=, this] (wf::view_decoration_state_updated_signal *ev) {
+    wf::signal::connection_t<wf::view_decoration_state_updated_signal> on_decoration_state_updated = [=, this] (wf::view_decoration_state_updated_signal *ev) {
         update_view_decoration(ev->view);
     };
 
 public:
 
     void init() override {
-        wf::get_core().connect(&on_decoration_state_changed);
         wf::get_core().connect(&on_view_mapped);
-        wf::get_core().connect(&on_view_changed);
+        wf::get_core().connect(&on_decoration_state_updated);
+        wf::get_core().connect(&on_view_decoration_changed);
 
         for (auto& view : wf::get_core().get_all_views())
         {
