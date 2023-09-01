@@ -39,9 +39,6 @@ namespace wf {
         int decoration_theme_t::get_max_title_size() const {
             return max_title_size.get_value();
         }
-        int decoration_theme_t::get_corner_radius() const {
-            return corner_radius.get_value();
-        }
         int decoration_theme_t::get_button_size() const {
             return button_size.get_value();
         }
@@ -93,9 +90,6 @@ namespace wf {
         bool decoration_theme_t::get_debug_mode() const {
             return debug_mode.get_value();
         }
-        std::string decoration_theme_t::get_round_on() const {
-            return round_on.get_value();
-        }
 
         wf::dimensions_t decoration_theme_t::get_text_size(std::string text, int width, double scale) const {
             const auto format = CAIRO_FORMAT_ARGB32;
@@ -126,11 +120,9 @@ namespace wf {
             const auto format = CAIRO_FORMAT_ARGB32;
             cairo_surface_t* surface;
             if (orientation == HORIZONTAL) {
-                surface = cairo_image_surface_create(
-                                                     format, title_size.width, title_size.height);
+                surface = cairo_image_surface_create(format, title_size.width, title_size.height);
             } else {
-                surface = cairo_image_surface_create(
-                                                     format, title_size.height, title_size.width);
+                surface = cairo_image_surface_create(format, title_size.height, title_size.width);
             }
 
             wf::color_t color = (active) ? active_title.get_value() : inactive_title.get_value();
@@ -157,57 +149,6 @@ namespace wf {
             pango_cairo_show_layout(cr, layout);
             pango_font_description_free(font_desc);
             g_object_unref(layout);
-            cairo_destroy(cr);
-
-            return surface;
-        }
-
-        cairo_surface_t *decoration_theme_t::form_corner(bool active, int r,
-                                                         matrix<double> m,
-                                                         int height) const {
-            double c_r = corner_radius.get_value() * abs(m.xx);
-            double o_r = c_r - abs(m.xx) * (double)outline_size.get_value() / 2;
-
-            const auto format = CAIRO_FORMAT_ARGB32;
-            auto *surface = cairo_image_surface_create(format, c_r, height);
-            auto cr = cairo_create(surface);
-
-            cairo_translate(cr, c_r / 2, (double)height / 2);
-            cairo_scale(cr, m.xx, m.yy);
-            cairo_translate(cr, -c_r / 2, -(double)height / 2);
-
-            cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
-            /* Border */
-            wf::color_t color = active ? active_border.get_value() :
-                inactive_border.get_value();
-            cairo_set_source_rgba(cr, color.r, color.g, color.b, color.a);
-            if (r > 0) {
-                cairo_move_to(cr, 0, (int)(height - c_r));
-                cairo_arc(cr, 0, (int)(height - c_r), c_r, 0, M_PI / 2);
-                cairo_fill(cr);
-
-                cairo_rectangle(cr, 0, 0, c_r, height - c_r);
-                cairo_fill(cr);
-            } else {
-                cairo_rectangle(cr, 0, 0, c_r, height);
-                cairo_fill(cr);
-            }
-
-            /* Outline */
-            color = active ? active_outline.get_value() : inactive_outline.get_value();
-            cairo_set_source_rgba(cr, color.r, color.g, color.b, color.a);
-            cairo_set_line_width(cr, outline_size.get_value() * abs(m.xx));
-            if (r > 0) {
-                cairo_move_to(cr, o_r, 0);
-                cairo_line_to(cr, o_r, height - c_r);
-                cairo_arc(cr, 0, (int)(height - c_r), o_r, 0, M_PI / 2);
-                cairo_stroke(cr);
-            } else {
-                cairo_move_to(cr, o_r, 0);
-                cairo_line_to(cr, o_r, height - c_r + o_r);
-                cairo_line_to(cr, 0, height - c_r + o_r);
-            }
-            cairo_stroke(cr);
             cairo_destroy(cr);
 
             return surface;
@@ -256,8 +197,9 @@ namespace wf {
                 }
             }
 
-            cairo_surface_t *button_surface = cairo_image_surface_create(
-                                                                         CAIRO_FORMAT_ARGB32, button_size.get_value(), button_size.get_value());
+            cairo_surface_t *button_surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32,
+                                                                         button_size.get_value(),
+                                                                         button_size.get_value());
 
             auto cr = cairo_create(button_surface);
             cairo_set_antialias(cr, CAIRO_ANTIALIAS_BEST);

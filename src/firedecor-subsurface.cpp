@@ -132,18 +132,6 @@ namespace wf::firedecor {
             std::string app_id = "";
         } icon;
 
-        /** Corner variables */
-        struct corner_texture_t {
-            simple_texture_t tex[2];
-            cairo_surface_t *surf[2];
-            geometry_t g;
-            int r;
-        };
-
-        struct {
-            corner_texture_t tr, tl, bl, br;
-        } corners;
-
         /** Edge variables */
         struct edge_colors_t {
             color_set_t border, outline;
@@ -155,61 +143,8 @@ namespace wf::firedecor {
         region_t cached_region;
         dimensions_t size;
 
-        void update_corners(edge_colors_t colors, int corner_radius, double scale) {
-            if ((this->corner_radius != corner_radius) ||
-                (edges.border != colors.border) ||
-                (edges.outline != colors.outline)) {
-                corners.tr.r = corners.tl.r = corners.bl.r = corners.br.r = 0;
-
-                std::stringstream round_on_str(theme.get_round_on());
-                std::string corner;
-                while (round_on_str >> corner) {
-                    if (corner == "all") {
-                        corners.tr.r = corners.tl.r = corners.bl.r = corners.br.r
-                            = theme.get_corner_radius() * scale;
-                        break;
-                    } else if (corner == "tr") {
-                        corners.tr.r = (theme.get_corner_radius() * scale);
-                    } else if (corner == "tl") {
-                        corners.tl.r = (theme.get_corner_radius() * scale);
-                    } else if (corner == "bl") {
-                        corners.bl.r = (theme.get_corner_radius() * scale);
-                    } else if (corner == "br") {
-                        corners.br.r = (theme.get_corner_radius() * scale);
-                    }
-                }
-                int height = std::max( { corner_radius, border_size.top,
-                        border_size.bottom });
-                auto create_s_and_t = [&](corner_texture_t& t, matrix<double> m, int r) {
-                    for (auto a : { ACTIVE, INACTIVE }) {
-                        t.surf[a] = theme.form_corner(a, r, m, height);
-                        cairo_surface_upload_to_texture(t.surf[a], t.tex[a]);
-                    }
-                };
-                /** The transformations are how we create 4 different corners */
-                create_s_and_t(corners.tr, { scale, 0, 0, scale }, corners.tr.r);
-                create_s_and_t(corners.tl, { -scale, 0, 0, scale }, corners.tl.r);
-                create_s_and_t(corners.bl, { -scale, 0, 0, -scale }, corners.bl.r);
-                create_s_and_t(corners.br, { scale, 0, 0, -scale }, corners.br.r);
-
-                corners.tr.g = { size.width - corner_radius, 0,
-                                 corner_radius, height };
-                corners.tl.g = { 0, 0, corner_radius, height };
-                corners.bl.g = { 0, size.height - height, corner_radius, height };
-                corners.br.g = { size.width - corner_radius, size.height - height,
-                                 corner_radius, height };
-
-                edges.border.active    = colors.border.active;
-                edges.border.inactive  = colors.border.inactive;
-                edges.outline.active   = colors.outline.active;
-                edges.outline.inactive = colors.outline.inactive;
-                this->corner_radius    = corner_radius;
-            }
-        }
-
     public:
         border_size_t border_size;
-        int corner_radius;
 
         template<typename T>
         T get_option(std::string theme, std::string option_name) {
@@ -233,7 +168,6 @@ namespace wf::firedecor {
                 get_option<std::string>(theme, "border_size"),
                 get_option<wf::color_t>(theme, "active_border"),
                 get_option<wf::color_t>(theme, "inactive_border"),
-                get_option<int>(theme, "corner_radius"),
 
                 get_option<int>(theme, "outline_size"),
                 get_option<wf::color_t>(theme, "active_outline"),
@@ -256,8 +190,7 @@ namespace wf::firedecor {
                 get_option<std::string>(theme, "layout"),
 
                 get_option<std::string>(theme, "ignore_views"),
-                get_option<bool>(theme, "debug_mode"),
-                get_option<std::string>(theme, "round_on")
+                get_option<bool>(theme, "debug_mode")
             };
             return options;
         }
@@ -316,16 +249,9 @@ namespace wf::firedecor {
             {
                 self->update_layout(DONT_FORCE, target.scale);
 
-                int h = std::max({ self->corner_radius, self->border_size.top, self->border_size.bottom });
-                self->corners.tr.g = { self->size.width - self->corner_radius, 0, self->corner_radius, h };
-                self->corners.bl.g = { 0, self->size.height - h, self->corner_radius, h };
-                self->corners.br.g = { self->size.width - self->corner_radius,
-                                       self->size.height - h, self->corner_radius, h };
-
-                for (const auto& box : region)
-                    {
-                        self->render_scissor_box(target, self->get_offset(), wlr_box_from_pixman_box(box));
-                    }
+                for (const auto& box : region) {
+                    self->render_scissor_box(target, self->get_offset(), wlr_box_from_pixman_box(box));
+                }
             }
         };
 
@@ -386,49 +312,44 @@ namespace wf::firedecor {
         }
 
         void render_background_area(const render_target_t& fb, geometry_t g,
-                                    point_t rect, geometry_t scissor,
-                                    std::string rounded, unsigned long i,
+                                    point_t rect, geometry_t scissor, unsigned long i,
                                     decoration_area_type_t type, matrix<int> m,
                                     edge_t edge) {
-            /** The view's origin */
+            // The view's origin
             point_t o = { rect.x, rect.y };
 
-            if (type == DECORATION_AREA_ACCENT) {
-            } else {
-                /**** Render a single rectangle when the area is a background */
-                color_t color = (view->activated) ?
-                    alpha_trans(theme.get_border_colors().active) :
-                    alpha_trans(theme.get_border_colors().inactive);
-                color_t o_color = (view->activated) ?
-                    alpha_trans(theme.get_outline_colors().active) :
-                    alpha_trans(theme.get_outline_colors().inactive);
+            // Render a single rectangle when the area is a background
+            color_t color = (view->activated) ?
+                alpha_trans(theme.get_border_colors().active) :
+                alpha_trans(theme.get_border_colors().inactive);
+            color_t o_color = (view->activated) ?
+                alpha_trans(theme.get_outline_colors().active) :
+                alpha_trans(theme.get_outline_colors().inactive);
 
-                wf::geometry_t g_o;
-                int o_s = theme.get_outline_size();
-                if (edge == wf::firedecor::EDGE_TOP) {
-                    g_o = { g.x, g.y, g.width, o_s };
-                    g = { g.x, g.y + o_s, g.width, g.height - o_s };
-                } else if (edge == wf::firedecor::EDGE_LEFT) {
-                    // the g.y + is probably not correct, but works for now
-                    g_o = { g.x, g.y, o_s, g.y + g.height };
-                    g = { g.x + o_s, g.y, g.width - o_s, g.y + g.height };
-                } else if (edge == wf::firedecor::EDGE_BOTTOM) {
-                    g_o = { g.x, g.y + g.height - o_s, g.width, o_s };
-                    g = { g.x, g.y, g.width, g.height - o_s };
-                } else if (edge == wf::firedecor::EDGE_RIGHT) {
-                    // the g.y + is probably not correct, but works for now
-                    g_o = { g.x + g.width - o_s, g.y, o_s, g.y + g.height };
-                    g = { g.x, g.y, g.width - o_s, g.y + g.height };
-                }
-                g_o = g_o + o;
-
-                OpenGL::render_begin(fb);
-                fb.logic_scissor(scissor);
-                OpenGL::render_rectangle(g + o, color, fb.get_orthographic_projection());
-                OpenGL::render_rectangle(g_o, o_color, fb.get_orthographic_projection());
-                OpenGL::render_end();
-                /****/
+            wf::geometry_t g_o;
+            int o_s = theme.get_outline_size();
+            if (edge == wf::firedecor::EDGE_TOP) {
+                g_o = { g.x, g.y, g.width, o_s };
+                g = { g.x, g.y + o_s, g.width, g.height - o_s };
+            } else if (edge == wf::firedecor::EDGE_LEFT) {
+                // the g.y + is probably not correct, but works for now
+                g_o = { g.x, g.y, o_s, g.y + g.height };
+                g = { g.x + o_s, g.y, g.width - o_s, g.y + g.height };
+            } else if (edge == wf::firedecor::EDGE_BOTTOM) {
+                g_o = { g.x, g.y + g.height - o_s, g.width, o_s };
+                g = { g.x, g.y, g.width, g.height - o_s };
+            } else if (edge == wf::firedecor::EDGE_RIGHT) {
+                // the g.y + is probably not correct, but works for now
+                g_o = { g.x + g.width - o_s, g.y, o_s, g.y + g.height };
+                g = { g.x, g.y, g.width - o_s, g.y + g.height };
             }
+            g_o = g_o + o;
+
+            OpenGL::render_begin(fb);
+            fb.logic_scissor(scissor);
+            OpenGL::render_rectangle(g + o, color, fb.get_orthographic_projection());
+            OpenGL::render_rectangle(g_o, o_color, fb.get_orthographic_projection());
+            OpenGL::render_end();
         }
 
         void render_background(const render_target_t& fb, geometry_t rect,
@@ -440,36 +361,20 @@ namespace wf::firedecor {
             colors.border.active = alpha_trans(colors.border.active);
             colors.border.inactive = alpha_trans(colors.border.inactive);
 
-            int r = theme.get_corner_radius() * fb.scale;
-            update_corners(colors, r, fb.scale);
-
-            /** Borders */
+            // Borders
             unsigned long i = 0;
             point_t rect_o = { rect.x, rect.y };
 
             for (auto area : layout.get_background_areas()) {
-                render_background_area(fb, area->get_geometry(), rect_o, scissor,
-                                       area->get_corners(), i, area->get_type(),
+                render_background_area(fb, area->get_geometry(), rect_o, scissor, i, area->get_type(),
                                        area->get_m(), area->get_edge());
                 i++;
             }
-
-            /*OpenGL::render_begin(fb);
-            fb.logic_scissor(scissor);
-
-            // Outlines
-            bool a = view->activated;
-            point_t o = { rect.x, rect.y };
-            // Rendering all corners
-            for (auto *c : { &corners.tr, &corners.tl, &corners.bl, &corners.br }) {
-                OpenGL::render_texture(c->tex[a].tex, fb, c->g + o, glm::vec4(1.0f));
-            }
-            OpenGL::render_end();*/
         }
 
         void render_scissor_box(const render_target_t& fb, point_t origin,
                                 const wlr_box& scissor) {
-            /** Draw the background (corners and border) */
+            // Draw the background
             wlr_box geometry{origin.x, origin.y, size.width, size.height};
             render_background(fb, geometry, scissor);
 
