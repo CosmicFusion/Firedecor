@@ -353,7 +353,7 @@ void decoration_layout_t::resize(int width, int height, wf::dimensions_t title_s
 
     create_areas(width, height, title_size, dots_size);
 
-	/* Areas for resizing only, used for movement area calculation */
+    /* Areas for resizing only, used for movement area calculation */
     int top_resize    = std::min(std::max(border_size.top - max_height, 7),
                               border_size.top);
     int left_resize   = std::min(std::max(border_size.left - max_height, 7),

@@ -32,10 +32,10 @@ void button_t::set_active(bool active) {
 }
 
 void button_t::set_maximized(uint32_t edges) {
-    if (this->maximized != (edges == wf::TILED_EDGES_ALL)) {
+    /*if (this->maximized != (edges == wf::TILED_EDGES_ALL)) {
         this->maximized = (edges == wf::TILED_EDGES_ALL);
         add_idle_damage();
-    }
+        }*/
 }
 
 void button_t::set_hover(bool is_hovered) {
