@@ -19,11 +19,9 @@ namespace wf {
         }
 
         // Initialize a new decoration area holding a title
-        decoration_area_t::decoration_area_t(wf::geometry_t g, wf::geometry_t g_dots,
-                                             edge_t edge) {
+        decoration_area_t::decoration_area_t(wf::geometry_t g, edge_t edge) {
             this->type     = DECORATION_AREA_TITLE;
             this->geometry = g;
-            this->dots_geometry = g_dots;
             this->edge     = edge;
         }
 
@@ -59,10 +57,6 @@ namespace wf {
 
         wf::geometry_t decoration_area_t::get_geometry() const {
             return geometry;
-        }
-
-        wf::geometry_t decoration_area_t::get_dots_geometry() const {
-            return dots_geometry;
         }
 
         edge_t decoration_area_t::get_edge() const {
@@ -119,8 +113,7 @@ namespace wf {
         {}
 
         void decoration_layout_t::create_areas(int width, int height,
-                                               wf::dimensions_t title_size,
-                                               wf::dimensions_t dots_size) {
+                                               wf::dimensions_t title_size) {
             int count = std::count(layout.begin(), layout.end(), '-');
             std::string layout_str = layout;
             for (int i = 4; i > count; i--) {
@@ -140,8 +133,7 @@ namespace wf {
             // Elements that can be transformed to work on any edge
             auto p = [&]() -> wf::point_t { return { shift, out_padding }; };
             const wf::point_t &l = { width, height - border_size.top - border_size.bottom };
-            const wf::point_t &title = { title_size.width, title_size.height };
-            const wf::point_t &dots = { dots_size.width, dots_size.height };
+            wf::point_t title = { title_size.width, title_size.height };
 
             // Matrix that transforms said elements
             matrix<int> m = { 1, 0, 0, 1 };
@@ -205,26 +197,19 @@ namespace wf {
                             shift = 0;
                         }
 
-                        wf::geometry_t cur_g, cur_dots_g;
+                        wf::geometry_t cur_g;
                         for (auto type : vec) {
                             int delta = 0;
 
                             if (type == "title") {
-                                delta = title_size.width + dots.x;
+                                delta = title_size.width;
                                 out_padding = (max_height - title_size.height) / 2;
                                 cur_g = {
                                     o.x + trans(p()).x, o.y + trans(p()).y,
                                     trans(title).x, trans(title).y
                                 };
-                                wf::point_t dots_o = { title_size.width, 0 };
-                                dots_o = dots_o + p();
-                                cur_dots_g = {
-                                    o.x + trans(dots_o).x, o.y + trans(dots_o).y,
-                                    trans(dots).x, trans(dots).y
-                                };
 
-                                layout_areas.push_back(std::make_unique<decoration_area_t>(
-                                                                                           cur_g, cur_dots_g, cur_edge));
+                                layout_areas.push_back(std::make_unique<decoration_area_t>(cur_g, cur_edge));
                             } else if (type == "icon") {
                                 delta = icon_size;
                                 out_padding = (max_height - icon_size) / 2;
@@ -232,8 +217,8 @@ namespace wf {
                                     o.x + trans(p()).x, o.y + trans(p()).y,
                                     (m.xx + m.xy) * icon_size, (m.yx + m.yy) * icon_size
                                 };
-                                layout_areas.push_back(std::make_unique<decoration_area_t>(
-                                                                                           DECORATION_AREA_ICON, cur_g, cur_edge));
+
+                                layout_areas.push_back(std::make_unique<decoration_area_t>(DECORATION_AREA_ICON, cur_g, cur_edge));
                             } else if (type == "p") {
                                 delta = padding_size;
                             } else if (type[0] == 'P') {
@@ -252,8 +237,7 @@ namespace wf {
                                     BUTTON_MINIMIZE : ((type == "maximize") ?
                                                        BUTTON_TOGGLE_MAXIMIZE : BUTTON_CLOSE);
 
-                                layout_areas.push_back(std::make_unique<decoration_area_t>(
-                                                                                           cur_g, damage_callback, theme));
+                                layout_areas.push_back(std::make_unique<decoration_area_t>(cur_g, damage_callback, theme));
                                 layout_areas.back()->as_button().set_button_type(button);
                             }
 
@@ -270,8 +254,7 @@ namespace wf {
                     };
                     if (final_g.width > 0 && final_g.height > 0) {
                         auto type = DECORATION_AREA_BACKGROUND;
-                        background_areas.push_back(
-                                                   std::make_unique<decoration_area_t>(type, final_g, "", m,
+                        background_areas.push_back(std::make_unique<decoration_area_t>(type, final_g, "", m,
                                                                                        cur_edge));
                     }
                     counter = 0;
@@ -325,13 +308,12 @@ namespace wf {
         }
 
         // Regenerate layout using a new size
-        void decoration_layout_t::resize(int width, int height, wf::dimensions_t title_size,
-                                         wf::dimensions_t dots_size) {
+        void decoration_layout_t::resize(int width, int height, wf::dimensions_t title_size) {
             max_height = std::max({ title_size.height, icon_size, button_size });
             this->background_areas.clear();
             this->layout_areas.clear();
 
-            create_areas(width, height, title_size, dots_size);
+            create_areas(width, height, title_size);
 
             // Areas for resizing only, used for movement area calculation
             int top_resize    = std::min(std::max(border_size.top - max_height, 7),
@@ -356,29 +338,24 @@ namespace wf {
                                       std::max(border_size.right - right_resize, 0),
                                       height - border_size.top - border_size.bottom }
                 } ) {
-                this->layout_areas.push_back(std::make_unique<decoration_area_t>(
-                                                                                 DECORATION_AREA_MOVE, g));
+                this->layout_areas.push_back(std::make_unique<decoration_area_t>(DECORATION_AREA_MOVE, g));
             }
 
             // Resizing edges - top
             wf::geometry_t border_geometry = { 0, 0, width, top_resize };
-            this->layout_areas.push_back(std::make_unique<decoration_area_t>(
-                                                                             DECORATION_AREA_RESIZE_TOP, border_geometry, EDGE_TOP));
+            this->layout_areas.push_back(std::make_unique<decoration_area_t>(DECORATION_AREA_RESIZE_TOP, border_geometry, EDGE_TOP));
 
             // Resizing edges - left
             border_geometry = { 0, 0, left_resize, height };
-            this->layout_areas.push_back(std::make_unique<decoration_area_t>(
-                                                                             DECORATION_AREA_RESIZE_LEFT, border_geometry, EDGE_LEFT));
+            this->layout_areas.push_back(std::make_unique<decoration_area_t>(DECORATION_AREA_RESIZE_LEFT, border_geometry, EDGE_LEFT));
 
             // Resizing edges - bottom
             border_geometry = { 0, height - bottom_resize, width, bottom_resize };
-            this->layout_areas.push_back(std::make_unique<decoration_area_t>(
-                                                                             DECORATION_AREA_RESIZE_BOTTOM, border_geometry, EDGE_BOTTOM));
+            this->layout_areas.push_back(std::make_unique<decoration_area_t>(DECORATION_AREA_RESIZE_BOTTOM, border_geometry, EDGE_BOTTOM));
 
             // Resizing edges - right
             border_geometry = { width - right_resize, 0, right_resize, height };
-            this->layout_areas.push_back(std::make_unique<decoration_area_t>(
-                                                                             DECORATION_AREA_RESIZE_RIGHT, border_geometry, EDGE_RIGHT));
+            this->layout_areas.push_back(std::make_unique<decoration_area_t>(DECORATION_AREA_RESIZE_RIGHT, border_geometry, EDGE_RIGHT));
         }
 
         // @return The decoration areas which need to be rendered, in top to bottom
@@ -410,7 +387,6 @@ namespace wf {
             for (auto& area : layout_areas) {
                 r |= area->get_geometry();
             }
-
             return r;
         }
 

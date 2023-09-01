@@ -32,112 +32,95 @@ namespace wf::firedecor {
 
     class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_interaction_t, public wf::touch_interaction_t
     {
-        wayfire_toplevel_view view;
+        std::weak_ptr<wf::toplevel_view_interface_t> _view;
 
         wf::signal::connection_t<wf::view_title_changed_signal> title_set = [=, this] (wf::view_title_changed_signal *ev) {
-            if (ev->view == view) {
+            if (auto view = _view.lock()) {
                 title_changed = true;
                 view->damage(); // trigger re-render
             }
         };
 
         void update_title(double scale) {
-            dimensions_t title_size = {
-                (int)(title.dims.width * scale), (int)(title.dims.height * scale)
-            };
-            dimensions_t dots_size = {
-                (int)(title.dots_dims.width * scale),
-                (int)(title.dots_dims.height * scale)
-            };
+            if (auto view = _view.lock()) {
+                dimensions_t title_size = {
+                    (int)(title.dims.width * scale), (int)(title.dims.height * scale)
+                };
 
-            auto o = HORIZONTAL;
-            std::string text = title.text;
-            int count = 0;
-            wf::dimensions_t size = title_size;
+                auto o = HORIZONTAL;
+                std::string text = title.text;
+                int count = 0;
+                wf::dimensions_t size = title_size;
 
-            for (auto texture : { title.hor, title.ver,
-                                  title.hor_dots, title.ver_dots }) {
-                for (auto state : { ACTIVE, INACTIVE }) {
-                    cairo_surface_t *surface;
-                    surface = theme.form_title(text, size, state, o, scale);
-                    cairo_surface_upload_to_texture(surface, texture[state]);
-                    cairo_surface_destroy(surface);
-                }
+                for (auto texture : { title.hor }) {
+                    for (auto state : { ACTIVE, INACTIVE }) {
+                        cairo_surface_t *surface;
+                        surface = theme.form_title(text, size, state, o, scale);
+                        cairo_surface_upload_to_texture(surface, texture[state]);
+                        cairo_surface_destroy(surface);
+                    }
 
-                o = (o == HORIZONTAL) ? VERTICAL : HORIZONTAL;
-                if (count == 1) {
-                    text = "...";
-                    size = dots_size;
-                }
-                count++;
-            };
-            title_needs_update = false;
+                    count++;
+                };
+                title_needs_update = false;
+            }
         }
 
         void update_icon(double scale) {
-            if (view->get_app_id() != icon.app_id) {
-                icon.app_id = view->get_app_id();
-                auto surface = theme.form_icon(icon.app_id, scale);
-                cairo_surface_upload_to_texture(surface, icon.texture);
-                cairo_surface_destroy(surface);
+            if (auto view = _view.lock()) {
+                if (view->get_app_id() != icon.app_id) {
+                    icon.app_id = view->get_app_id();
+                    auto surface = theme.form_icon(icon.app_id, scale);
+                    cairo_surface_upload_to_texture(surface, icon.texture);
+                    cairo_surface_destroy(surface);
+                }
             }
         }
 
         void update_layout(bool force, double scale) {
-            if ((title.colors != theme.get_title_colors()) || title_changed || force) {
-                /** Updating the cached variables */
-                title.colors = theme.get_title_colors();
-                title.text = view->get_title();
+            if (auto view = _view.lock()) {
+                if ((title.colors != theme.get_title_colors()) || title_changed || force) {
+                    // Update cached variables
+                    title.colors = theme.get_title_colors();
+                    title.text = view->get_title();
 
-                wf::dimensions_t cur_size = theme.get_text_size(title.text, size.width, scale);
+                    wf::dimensions_t cur_size = theme.get_text_size(title.text, size.width, scale);
 
-                title.dims.height = cur_size.height;
-
-                if (cur_size.width <= theme.get_max_title_size()) {
+                    title.dims.height = cur_size.height;
                     title.dims.width = cur_size.width;
-                    title.too_big = false;
-                    title.dots_dims = { 0, 0 };
-                } else {
-                    wf::dimensions_t dots_size = theme.get_text_size("...", size.width, scale);
 
-                    title.dims.width = theme.get_max_title_size() - dots_size.width;
-                    title.too_big = true;
-                    title.dots_dims = dots_size;
+                    title_changed = false;
+                    title_needs_update = true;
+
+                    // Necessary in order to immediately place areas correctly
+                    layout.resize(size.width, size.height, title.dims);
                 }
-
-                title_changed = false;
-                title_needs_update = true;
-
-                /** Necessary in order to immediately place areas correctly */
-                layout.resize(size.width, size.height, title.dims, title.dots_dims);
             }
         }
 
-        /** Title variables */
+        // Title variables
         struct {
-            simple_texture_t hor[2], hor_dots[2];
-            simple_texture_t ver[2], ver_dots[2];
+            simple_texture_t hor[2];
             std::string text = "";
             color_set_t colors;
-            dimensions_t dims, dots_dims;
-            bool dots_set = false, too_big = true;
+            dimensions_t dims;
         } title;
 
         bool title_needs_update = false;
         bool title_changed = true;
 
-        /** Icon variables */
+        // Icon variables
         struct {
             simple_texture_t texture;
             std::string app_id = "";
         } icon;
 
-        /** Edge variables */
+        // Edge variables
         struct edge_colors_t {
             color_set_t border, outline;
         } edges;
 
-        /** Other general variables */
+        // Other general variables
         decoration_theme_t theme;
         decoration_layout_t layout;
         region_t cached_region;
@@ -200,8 +183,10 @@ namespace wf::firedecor {
               theme{get_options("default")},
               layout{theme, [=, this] (wlr_box box) {
                   wf::scene::damage_node(shared_from_this(), box + get_offset()); }} {
-            this->view = view;
+            this->_view = view->weak_from_this();
             view->connect(&title_set);
+
+            title.dims = { 0, 0};
 
             // make sure to hide frame if the view is fullscreen
             update_decoration_size();
@@ -216,8 +201,7 @@ namespace wf::firedecor {
             simple_decoration_node_t *self;
             wf::scene::damage_callback push_damage;
             wf::signal::connection_t<wf::scene::node_damage_signal> on_surface_damage =
-                [=, this] (wf::scene::node_damage_signal *data)
-                {
+                [=, this] (wf::scene::node_damage_signal *data) {
                     push_damage(data->region);
                 };
 
@@ -234,14 +218,13 @@ namespace wf::firedecor {
             {
                 auto our_region = self->cached_region + self->get_offset();
                 wf::region_t our_damage = damage & our_region;
-                if (!our_damage.empty())
-                    {
-                        instructions.push_back(wf::scene::render_instruction_t{
-                                .instance = this,
-                                .target   = target,
-                                .damage   = std::move(our_damage),
-                            });
-                    }
+                if (!our_damage.empty()) {
+                    instructions.push_back(wf::scene::render_instruction_t{
+                            .instance = this,
+                            .target   = target,
+                            .damage   = std::move(our_damage),
+                        });
+                }
             }
 
             void render(const wf::render_target_t& target,
@@ -263,39 +246,29 @@ namespace wf::firedecor {
 
         wf::geometry_t get_bounding_box() override
         {
-            if (view->pending_fullscreen())
-                {
-                    return view->get_geometry(); // FIXME: was get_wm_geometry
-                } else {
+            auto view = _view.lock();
+            if (view && view->pending_fullscreen()) {
+                return view->get_geometry(); // FIXME: was get_wm_geometry
+            } else {
                 return wf::construct_box(get_offset(), size);
             }
         }
 
-        void render_title(const render_target_t& fb, geometry_t geometry,
-                          geometry_t dots_geometry, edge_t edge, geometry_t scissor) {
-            if (title_needs_update) {
-                update_title(fb.scale);
-            }
+        void render_title(const render_target_t& fb, geometry_t geometry, geometry_t scissor) {
+            if (auto view = _view.lock()) {
+                if (title_needs_update) {
+                    update_title(fb.scale);
+                }
 
-            simple_texture_t *texture, *dots_texture;
-            uint32_t bits = 0;
-            if (edge == EDGE_TOP || edge == EDGE_BOTTOM) {
-                bits = OpenGL::TEXTURE_TRANSFORM_INVERT_Y;
+                simple_texture_t *texture;
+                uint32_t bits = OpenGL::TEXTURE_TRANSFORM_INVERT_Y;
                 texture = &title.hor[view->activated];
-                dots_texture = &title.hor_dots[view->activated];
-            } else {
-                texture = &title.ver[view->activated];
-                dots_texture = &title.ver_dots[view->activated];
-            }
 
-            OpenGL::render_begin(fb);
-            fb.logic_scissor(scissor);
-            OpenGL::render_texture(texture->tex, fb, geometry, glm::vec4(1.0f), bits);
-            if (title.too_big) {
-                OpenGL::render_texture(dots_texture->tex, fb, dots_geometry,
-                                       glm::vec4(1.0f), bits);
+                OpenGL::render_begin(fb);
+                fb.logic_scissor(scissor);
+                OpenGL::render_texture(texture->tex, fb, geometry, glm::vec4(1.0f), bits);
+                OpenGL::render_end();
             }
-            OpenGL::render_end();
         }
 
         void render_icon(const render_target_t& fb, geometry_t g,
@@ -315,41 +288,43 @@ namespace wf::firedecor {
                                     point_t rect, geometry_t scissor, unsigned long i,
                                     decoration_area_type_t type, matrix<int> m,
                                     edge_t edge) {
-            // The view's origin
-            point_t o = { rect.x, rect.y };
+            if (auto view = _view.lock()) {
+                // The view's origin
+                point_t o = { rect.x, rect.y };
 
-            // Render a single rectangle when the area is a background
-            color_t color = (view->activated) ?
-                alpha_trans(theme.get_border_colors().active) :
-                alpha_trans(theme.get_border_colors().inactive);
-            color_t o_color = (view->activated) ?
-                alpha_trans(theme.get_outline_colors().active) :
-                alpha_trans(theme.get_outline_colors().inactive);
+                // Render a single rectangle when the area is a background
+                color_t color = (view->activated) ?
+                    alpha_trans(theme.get_border_colors().active) :
+                    alpha_trans(theme.get_border_colors().inactive);
+                color_t o_color = (view->activated) ?
+                    alpha_trans(theme.get_outline_colors().active) :
+                    alpha_trans(theme.get_outline_colors().inactive);
 
-            wf::geometry_t g_o;
-            int o_s = theme.get_outline_size();
-            if (edge == wf::firedecor::EDGE_TOP) {
-                g_o = { g.x, g.y, g.width, o_s };
-                g = { g.x, g.y + o_s, g.width, g.height - o_s };
-            } else if (edge == wf::firedecor::EDGE_LEFT) {
-                // the g.y + is probably not correct, but works for now
-                g_o = { g.x, g.y, o_s, g.y + g.height };
-                g = { g.x + o_s, g.y, g.width - o_s, g.y + g.height };
-            } else if (edge == wf::firedecor::EDGE_BOTTOM) {
-                g_o = { g.x, g.y + g.height - o_s, g.width, o_s };
-                g = { g.x, g.y, g.width, g.height - o_s };
-            } else if (edge == wf::firedecor::EDGE_RIGHT) {
-                // the g.y + is probably not correct, but works for now
-                g_o = { g.x + g.width - o_s, g.y, o_s, g.y + g.height };
-                g = { g.x, g.y, g.width - o_s, g.y + g.height };
+                wf::geometry_t g_o;
+                int o_s = theme.get_outline_size();
+                if (edge == wf::firedecor::EDGE_TOP) {
+                    g_o = { g.x, g.y, g.width, o_s };
+                    g = { g.x, g.y + o_s, g.width, g.height - o_s };
+                } else if (edge == wf::firedecor::EDGE_LEFT) {
+                    // the g.y + is probably not correct, but works for now
+                    g_o = { g.x, g.y, o_s, g.y + g.height };
+                    g = { g.x + o_s, g.y, g.width - o_s, g.y + g.height };
+                } else if (edge == wf::firedecor::EDGE_BOTTOM) {
+                    g_o = { g.x, g.y + g.height - o_s, g.width, o_s };
+                    g = { g.x, g.y, g.width, g.height - o_s };
+                } else if (edge == wf::firedecor::EDGE_RIGHT) {
+                    // the g.y + is probably not correct, but works for now
+                    g_o = { g.x + g.width - o_s, g.y, o_s, g.y + g.height };
+                    g = { g.x, g.y, g.width - o_s, g.y + g.height };
+                }
+                g_o = g_o + o;
+
+                OpenGL::render_begin(fb);
+                fb.logic_scissor(scissor);
+                OpenGL::render_rectangle(g + o, color, fb.get_orthographic_projection());
+                OpenGL::render_rectangle(g_o, o_color, fb.get_orthographic_projection());
+                OpenGL::render_end();
             }
-            g_o = g_o + o;
-
-            OpenGL::render_begin(fb);
-            fb.logic_scissor(scissor);
-            OpenGL::render_rectangle(g + o, color, fb.get_orthographic_projection());
-            OpenGL::render_rectangle(g_o, o_color, fb.get_orthographic_projection());
-            OpenGL::render_end();
         }
 
         void render_background(const render_target_t& fb, geometry_t rect,
@@ -378,24 +353,24 @@ namespace wf::firedecor {
             wlr_box geometry{origin.x, origin.y, size.width, size.height};
             render_background(fb, geometry, scissor);
 
+            wlr_box clip = scissor;
+            if (!wlr_box_intersection(&clip, &scissor, &geometry)) {
+                clip = geometry;
+            }
+
             auto renderables = layout.get_renderable_areas();
             for (auto item : renderables) {
-                int32_t bits = 0;
-                if (item->get_edge() == EDGE_LEFT) {
-                    bits = OpenGL::TEXTURE_TRANSFORM_INVERT_Y;
-                } else if (item->get_edge() == EDGE_RIGHT) {
-                    bits = OpenGL::TEXTURE_TRANSFORM_INVERT_X;
-                }
+                int32_t bits = 0; //OpenGL::TEXTURE_TRANSFORM_INVERT_Y;
                 if (item->get_type() == DECORATION_AREA_TITLE) {
-                    render_title(fb, item->get_geometry() + origin,
-                                 item->get_dots_geometry() + origin, item->get_edge(),
-                                 scissor);
+                    render_title(fb, item->get_geometry() + origin, clip);
                 } else if (item->get_type() == DECORATION_AREA_BUTTON) {
-                    item->as_button().set_active(view->activated);
-                    //item->as_button().set_maximized(view->tiled_edges);
-                    item->as_button().render(fb, item->get_geometry() + origin, scissor);
+                    if (auto view = _view.lock()) {
+                        item->as_button().set_active(view->activated);
+                        //item->as_button().set_maximized(view->tiled_edges);
+                    }
+                    item->as_button().render(fb, item->get_geometry() + origin, clip);
                 } else if (item->get_type() == DECORATION_AREA_ICON) {
-                    render_icon(fb, item->get_geometry() + origin, scissor, bits);
+                    render_icon(fb, item->get_geometry() + origin, clip, bits);
                 }
             }
         }
@@ -414,12 +389,6 @@ namespace wf::firedecor {
 
         pointer_interaction_t& pointer_interaction() override {
             return *this;
-        }
-
-        // FIXME
-        bool accepts_input(int32_t sx, int32_t sy) {
-            return pixman_region32_contains_point(cached_region.to_pixman(),
-                                                  sx, sy, NULL);
         }
 
         /* wf::compositor_surface_t implementation */
@@ -447,30 +416,32 @@ namespace wf::firedecor {
 
         // TODO: implement a pinning button.
         void handle_action(decoration_layout_t::action_response_t action) {
-            switch (action.action) {
-            case DECORATION_ACTION_MOVE:
-                return wf::get_core().default_wm->move_request(view);
+            if (auto view = _view.lock()) {
+                switch (action.action) {
+                case DECORATION_ACTION_MOVE:
+                    return wf::get_core().default_wm->move_request(view);
 
-            case DECORATION_ACTION_RESIZE:
-                return wf::get_core().default_wm->resize_request(view, action.edges);
+                case DECORATION_ACTION_RESIZE:
+                    return wf::get_core().default_wm->resize_request(view, action.edges);
 
-            case DECORATION_ACTION_CLOSE:
-                return view->close();
+                case DECORATION_ACTION_CLOSE:
+                    return view->close();
 
-            case DECORATION_ACTION_TOGGLE_MAXIMIZE:
-                if (view->pending_tiled_edges()) {
-                    wf::get_core().default_wm->tile_request(view, 0);
-                } else {
-                    wf::get_core().default_wm->tile_request(view, wf::TILED_EDGES_ALL);
+                case DECORATION_ACTION_TOGGLE_MAXIMIZE:
+                    if (view->pending_tiled_edges()) {
+                        wf::get_core().default_wm->tile_request(view, 0);
+                    } else {
+                        wf::get_core().default_wm->tile_request(view, wf::TILED_EDGES_ALL);
+                    }
+                    break;
+
+                case DECORATION_ACTION_MINIMIZE:
+                    wf::get_core().default_wm->minimize_request(view, true);
+                    break;
+
+                default:
+                    break;
                 }
-                break;
-
-            case DECORATION_ACTION_MINIMIZE:
-                wf::get_core().default_wm->minimize_request(view, true);
-                break;
-
-            default:
-                break;
             }
         }
 
@@ -493,18 +464,22 @@ namespace wf::firedecor {
         }
 
         void resize(dimensions_t dims) {
-            view->damage();
-            size = dims;
+            if (auto view = _view.lock()) {
+                view->damage();
+                size = dims;
 
-            layout.resize(size.width, size.height, title.dims, title.dots_dims);
-            if (!view->toplevel()->current().fullscreen) {
-                this->cached_region = layout.calculate_region();
+                layout.resize(size.width, size.height, title.dims);
+
+                if (!view->toplevel()->current().fullscreen) {
+                    this->cached_region = layout.calculate_region();
+                }
+                view->damage();
             }
-            view->damage();
         }
 
         void update_decoration_size() {
-            if (view->toplevel()->current().fullscreen) {
+            bool fullscreen = _view.lock()->toplevel()->current().fullscreen;
+            if (fullscreen) {
                 border_size = { 0, 0, 0, 0 };
                 this->cached_region.clear();
             } else {

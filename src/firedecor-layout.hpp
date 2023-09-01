@@ -48,10 +48,9 @@ namespace wf {
              * Initialize a new decoration area holding a title.
              *
              * @param g The geometry of the title area.
-             * @param g_dots The geometry of the dots area.
              * @param edge The edge where this area is placed.
              */
-            decoration_area_t(wf::geometry_t g, wf::geometry_t g_dots, edge_t edge);
+            decoration_area_t(wf::geometry_t g, edge_t edge);
 
             /**
              * Initialize a new decoration area holding a button.
@@ -60,8 +59,7 @@ namespace wf {
              * @param damage_callback Callback to execute when button needs repaint.
              * @param theme The theme to use for the button.
              */
-            decoration_area_t(
-                              wf::geometry_t g, std::function<void(wlr_box)> damage_callback,
+            decoration_area_t(wf::geometry_t g, std::function<void(wlr_box)> damage_callback,
                               const decoration_theme_t& theme);
 
             /**
@@ -87,9 +85,6 @@ namespace wf {
             /** @return The geometry of the decoration area, relative to the layout */
             wf::geometry_t get_geometry() const;
 
-            /** @return The geometry of the decoration area's dots, relative to the layout */
-            wf::geometry_t get_dots_geometry() const;
-
             /** @return The edge of the decoration area */
             edge_t get_edge() const;
 
@@ -108,9 +103,6 @@ namespace wf {
         private:
             wf::geometry_t geometry;
             edge_t edge;
-
-            /** For titles only */
-            wf::geometry_t dots_geometry;
 
             /** For buttons only */
             std::unique_ptr<button_t> button;
@@ -167,12 +159,10 @@ namespace wf {
             border_size_t parse_border(std::string border_size);
 
             /** Create buttons in the layout, and return their total geometry */
-            void create_areas(int width, int height, wf::dimensions_t title_size,
-                              wf::dimensions_t dots_size);
+            void create_areas(int width, int height, wf::dimensions_t title_size);
 
             /** Regenerate layout using the new size */
-            void resize(int width, int height, wf::dimensions_t title_size,
-                        wf::dimensions_t dims_size);
+            void resize(int width, int height, wf::dimensions_t title_size);
 
             /**
              * @return The decoration areas which need to be rendered, in top to bottom
