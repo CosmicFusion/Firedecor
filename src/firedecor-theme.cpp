@@ -159,8 +159,7 @@ namespace wf {
             if ((std::string)button_style.get_value() != "wayfire" &&
                 (std::string)button_style.get_value() != "firedecor" &&
                 (std::string)button_style.get_value() != "simple") {
-                std::string directory = (std::string)getenv("HOME") +
-                    "/usr/share/firedecor/button-styles/" +
+                std::string directory = "/usr/share/firedecor/button-styles/" +
                     (std::string)button_style.get_value() + "/";
                 std::string status;
                 std::string path;
