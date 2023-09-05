@@ -186,7 +186,7 @@ namespace wf::firedecor {
             this->_view = view->weak_from_this();
             view->connect(&title_set);
 
-            title.dims = { 0, 0};
+            title.dims = {0, 0};
 
             // make sure to hide frame if the view is fullscreen
             update_decoration_size();
@@ -246,12 +246,7 @@ namespace wf::firedecor {
 
         wf::geometry_t get_bounding_box() override
         {
-            auto view = _view.lock();
-            if (view && view->pending_fullscreen()) {
-                return view->get_geometry(); // FIXME: was get_wm_geometry
-            } else {
-                return wf::construct_box(get_offset(), size);
-            }
+            return wf::construct_box(get_offset(), size);
         }
 
         void render_title(const render_target_t& fb, geometry_t geometry, geometry_t scissor) {
@@ -487,7 +482,6 @@ namespace wf::firedecor {
         void update_decoration_size() {
             bool fullscreen = _view.lock()->toplevel()->current().fullscreen;
             if (fullscreen) {
-                border_size = { 0, 0, 0, 0 };
                 this->cached_region.clear();
             } else {
                 border_size = layout.parse_border(theme.get_border_size());
@@ -506,15 +500,15 @@ namespace wf::firedecor {
         view->connect(&on_view_geometry_changed);
         view->connect(&on_view_fullscreen);
 
-        on_view_activated = [ this ] (auto) {
-            wf::scene::damage_node( deco, deco->get_bounding_box());
+        on_view_activated = [this] (auto) {
+            wf::scene::damage_node(deco, deco->get_bounding_box());
         };
 
-        on_view_geometry_changed = [ this ] (auto) {
-            deco->resize(wf::dimensions( this->view->get_geometry()));
+        on_view_geometry_changed = [this] (auto) {
+            deco->resize(wf::dimensions(this->view->get_geometry()));
         };
 
-        on_view_fullscreen = [ this ] (auto) {
+        on_view_fullscreen = [this] (auto) {
             deco->update_decoration_size();
             if (!this->view->toplevel()->current().fullscreen) {
                 deco->resize(wf::dimensions(this->view->get_geometry()));
@@ -527,12 +521,17 @@ namespace wf::firedecor {
     }
 
     wf::decoration_margins_t wf::firedecor::simple_decorator_t::get_margins(const wf::toplevel_state_t& state) {
-        return wf::decoration_margins_t {
+        if (state.fullscreen) {
+            return {0, 0, 0, 0};
+        }
+
+        auto margins = wf::decoration_margins_t {
             .left   = deco->border_size.left,
             .right  = deco->border_size.right,
             .bottom = deco->border_size.bottom,
             .top    = deco->border_size.top,
         };
+        return margins;
     }
 
     // namespace
