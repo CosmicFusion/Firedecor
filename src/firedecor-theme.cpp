@@ -160,7 +160,7 @@ namespace wf {
                 (std::string)button_style.get_value() != "firedecor" &&
                 (std::string)button_style.get_value() != "simple") {
                 std::string directory = (std::string)getenv("HOME") +
-                    "/.config/firedecor/button-styles/" +
+                    "/usr/share/firedecor/button-styles/" +
                     (std::string)button_style.get_value() + "/";
                 std::string status;
                 std::string path;
@@ -643,7 +643,7 @@ namespace wf {
 
 
                 if (!icon_found) {
-                    std::string icon_path = " /usr/local/share/firedecor/executable.svg";
+                    std::string icon_path = " /usr/share/firedecor/executable.svg";
                     icon_file_out << app_id + icon_path << std::endl;
                 }
             }

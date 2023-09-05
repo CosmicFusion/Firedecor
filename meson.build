@@ -29,13 +29,13 @@ add_project_arguments(['-DWLR_USE_UNSTABLE'], language: ['cpp', 'c'])
 add_project_arguments(['-DWAYFIRE_PLUGIN'], language: ['cpp', 'c'])
 add_project_link_arguments(['-rdynamic'], language:'cpp')
 
-install_data('src/executable.svg', install_dir: join_paths(get_option('datadir'), 'firedecor'))
+install_data('share/executable.svg', install_dir: join_paths(get_option('datadir'), 'firedecor'))
+install_data(['share/button-styles/reform/close.png', 'share/button-styles/reform/minimize.png', 'share/button-styles/reform/toggle-maximize.png', 'share/button-styles/reform/close-hovered.png', 'share/button-styles/reform/minimize-hovered.png', 'share/button-styles/reform/toggle-maximize-hovered.png', 'share/button-styles/reform/close-pressed.png', 'share/button-styles/reform/minimize-pressed.png', 'share/button-styles/reform/toggle-maximize-pressed.png'], install_dir: join_paths(get_option('datadir'), 'firedecor/button-styles/reform'))
 
 subdir('src')
 subdir('metadata')
 
 summary = [
-
 	'',
 	'----------------',
 	'firedecor @0@'.format(meson.project_version()),
