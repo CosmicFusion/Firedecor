@@ -358,11 +358,18 @@ namespace wf::firedecor {
                 clip = geometry;
             }
 
+            if (clip.width < 1 || clip.height < 1) return;
+
             auto renderables = layout.get_renderable_areas();
             for (auto item : renderables) {
-                int32_t bits = 0; //OpenGL::TEXTURE_TRANSFORM_INVERT_Y;
+                int32_t bits = 0;
                 if (item->get_type() == DECORATION_AREA_TITLE) {
-                    render_title(fb, item->get_geometry() + origin, clip);
+                    wlr_box title_clip = clip;
+                    title_clip.x += 8;
+                    title_clip.width -= 98;
+                    if (title_clip.width > 0 && title_clip.height > 0) {
+                        render_title(fb, item->get_geometry() + origin, title_clip);
+                    }
                 } else if (item->get_type() == DECORATION_AREA_BUTTON) {
                     if (auto view = _view.lock()) {
                         item->as_button().set_active(view->activated);

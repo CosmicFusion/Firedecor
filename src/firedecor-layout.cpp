@@ -478,6 +478,14 @@ namespace wf {
         // Find the layout area at the given coordinates, if any
         // @return The layout area or null on failure
         nonstd::observer_ptr<decoration_area_t> decoration_layout_t::find_area_at(wf::point_t point) {
+
+            // prioritize buttons
+            for (auto& area : this->layout_areas) {
+                if (area->get_type() == DECORATION_AREA_BUTTON && area->get_geometry() & point) {
+                    return {area};
+                }
+            }
+
             for (auto& area : this->layout_areas) {
                 if (area->get_geometry() & point) {
                     return {area};
