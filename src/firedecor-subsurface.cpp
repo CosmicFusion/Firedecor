@@ -250,19 +250,22 @@ namespace wf::firedecor {
         }
 
         void render_title(const render_target_t& fb, geometry_t geometry, geometry_t scissor) {
-            if (auto view = _view.lock()) {
-                if (title_needs_update) {
-                    update_title(fb.scale);
-                }
+            if (title_needs_update) {
+                update_title(fb.scale);
+            }
 
+            if (auto view = _view.lock()) {
                 simple_texture_t *texture;
                 uint32_t bits = OpenGL::TEXTURE_TRANSFORM_INVERT_Y;
                 texture = &title.hor[view->activated];
 
-                OpenGL::render_begin(fb);
-                fb.logic_scissor(scissor);
-                OpenGL::render_texture(texture->tex, fb, geometry, glm::vec4(1.0f), bits);
-                OpenGL::render_end();
+                // optimization skipping damage that is outside of title bar area (below it)
+                if (scissor.y < 0) {
+                    OpenGL::render_begin(fb);
+                    fb.logic_scissor(scissor);
+                    OpenGL::render_texture(texture->tex, fb, geometry, glm::vec4(1.0f), bits);
+                    OpenGL::render_end();
+                }
             }
         }
 
@@ -350,19 +353,24 @@ namespace wf::firedecor {
 
             wlr_box clip = scissor;
             if (!wlr_box_intersection(&clip, &scissor, &geometry)) {
-                clip = geometry;
+                printf("no intersection: geometry: %d %d / %d %d ## scissor: %d %d / %d %d ## (%s)\n",
+                       geometry.x, geometry.y, geometry.width, geometry.height,
+                       scissor.x, scissor.y, scissor.width, scissor.height, title.text.c_str());
+                fflush(stdout);
+                return;
             }
-
-            if (clip.width < 1 || clip.height < 1) return;
 
             auto renderables = layout.get_renderable_areas();
             for (auto item : renderables) {
                 int32_t bits = 0;
                 if (item->get_type() == DECORATION_AREA_TITLE) {
-                    wlr_box title_clip = clip;
+                    // clip title so it doesn't overlap with buttons
+                    // FIXME: these sizes should not be hardcoded
+                    wlr_box title_clip = geometry;
                     title_clip.x += 8;
                     title_clip.width -= 98;
-                    if (title_clip.width > 0 && title_clip.height > 0) {
+
+                    if (wlr_box_intersection(&title_clip, &clip, &title_clip)) {
                         render_title(fb, item->get_geometry() + origin, title_clip);
                     }
                 } else if (item->get_type() == DECORATION_AREA_BUTTON) {

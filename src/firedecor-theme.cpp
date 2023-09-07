@@ -87,6 +87,7 @@ namespace wf {
             }
             return false;
         }
+
         bool decoration_theme_t::get_debug_mode() const {
             return debug_mode.get_value();
         }
