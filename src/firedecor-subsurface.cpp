@@ -250,7 +250,7 @@ namespace wf::firedecor {
         }
 
         void render_title(const render_target_t& fb, geometry_t geometry, geometry_t scissor) {
-            if (title_needs_update) {
+            if (1 || title_needs_update) {
                 update_title(fb.scale);
             }
 
@@ -259,10 +259,16 @@ namespace wf::firedecor {
                 uint32_t bits = OpenGL::TEXTURE_TRANSFORM_INVERT_Y;
                 texture = &title.hor[view->activated];
 
-                OpenGL::render_begin(fb);
-                fb.logic_scissor(scissor);
-                OpenGL::render_texture(texture->tex, fb, geometry, glm::vec4(1.0f), bits);
-                OpenGL::render_end();
+                if (scissor.y < 0) {
+                    printf("render_title: %d %d / %d %d (%s)\n", scissor.x, scissor.y, scissor.width, scissor.height, title.text.c_str());  fflush(stdout);
+
+                    OpenGL::render_begin(fb);
+                    fb.logic_scissor(scissor);
+                    OpenGL::render_texture(texture->tex, fb, geometry, glm::vec4(1.0f), bits);
+                    OpenGL::render_end();
+                }
+            } else {
+                printf("render_title: can't lock\n");  fflush(stdout);
             }
         }
 
@@ -349,30 +355,37 @@ namespace wf::firedecor {
             render_background(fb, geometry, scissor);
 
             wlr_box clip = scissor;
-            if (!wlr_box_intersection(&clip, &scissor, &geometry)) {
-                clip = geometry;
-            }
+            /*if (!wlr_box_intersection(&clip, &scissor, &geometry)) {
+                clip = scissor;
+            }*/
 
-            if (clip.width < 1 || clip.height < 1) return;
+            //if (clip.width < 1 || clip.height < 1) return;
 
             auto renderables = layout.get_renderable_areas();
             for (auto item : renderables) {
                 int32_t bits = 0;
                 if (item->get_type() == DECORATION_AREA_TITLE) {
-                    wlr_box title_clip = clip;
+                    /*wlr_box title_clip = geometry;
                     title_clip.x += 8;
                     title_clip.width -= 98;
-                    if (title_clip.width > 0 && title_clip.height > 0) {
-                        render_title(fb, item->get_geometry() + origin, title_clip);
-                    }
+
+                    if (!wlr_box_intersection(&title_clip, &clip, &title_clip)) {
+                        title_clip = scissor;
+                    }*/
+
+                    /*printf("geometry: %d %d / %d %d ## scissor: %d %d / %d %d ## (%s)\n",
+                           geometry.x, geometry.y, geometry.width, geometry.height,
+                           scissor.x, scissor.y, scissor.width, scissor.height, title.text.c_str());*/
+
+                    render_title(fb, item->get_geometry() + origin, clip);
                 } else if (item->get_type() == DECORATION_AREA_BUTTON) {
                     if (auto view = _view.lock()) {
                         item->as_button().set_active(view->activated);
                         //item->as_button().set_maximized(view->tiled_edges);
                     }
-                    item->as_button().render(fb, item->get_geometry() + origin, clip);
+                    //item->as_button().render(fb, item->get_geometry() + origin, clip);
                 } else if (item->get_type() == DECORATION_AREA_ICON) {
-                    render_icon(fb, item->get_geometry() + origin, clip, bits);
+                    //render_icon(fb, item->get_geometry() + origin, clip, bits);
                 }
             }
         }
