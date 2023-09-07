@@ -355,11 +355,13 @@ namespace wf::firedecor {
             render_background(fb, geometry, scissor);
 
             wlr_box clip = scissor;
-            /*if (!wlr_box_intersection(&clip, &scissor, &geometry)) {
-                clip = scissor;
-            }*/
-
-            //if (clip.width < 1 || clip.height < 1) return;
+            if (!wlr_box_intersection(&clip, &scissor, &geometry)) {
+                printf("no intersection: geometry: %d %d / %d %d ## scissor: %d %d / %d %d ## (%s)\n",
+                       geometry.x, geometry.y, geometry.width, geometry.height,
+                       scissor.x, scissor.y, scissor.width, scissor.height, title.text.c_str());
+                fflush(stdout);
+                return;
+            }
 
             auto renderables = layout.get_renderable_areas();
             for (auto item : renderables) {
