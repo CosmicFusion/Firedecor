@@ -87,14 +87,9 @@ namespace wf {
             }
             return false;
         }
+
         bool decoration_theme_t::get_debug_mode() const {
             return debug_mode.get_value();
-        }
-
-        double randfrom(double min, double max) {
-            double range = (max - min);
-            double div = RAND_MAX / range;
-            return min + (rand() / div);
         }
 
         wf::dimensions_t decoration_theme_t::get_text_size(std::string text, int width, double scale) const {
@@ -132,9 +127,6 @@ namespace wf {
             }
 
             wf::color_t color = (active) ? active_title.get_value() : inactive_title.get_value();
-            color.r = randfrom(0.0, 1.0);
-            color.g = randfrom(0.0, 1.0);
-            color.b = randfrom(0.0, 1.0);
 
             auto cr = cairo_create(surface);
             if (orientation == VERTICAL) {
