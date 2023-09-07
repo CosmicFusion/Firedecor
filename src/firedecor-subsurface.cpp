@@ -353,10 +353,6 @@ namespace wf::firedecor {
 
             wlr_box clip = scissor;
             if (!wlr_box_intersection(&clip, &scissor, &geometry)) {
-                printf("no intersection: geometry: %d %d / %d %d ## scissor: %d %d / %d %d ## (%s)\n",
-                       geometry.x, geometry.y, geometry.width, geometry.height,
-                       scissor.x, scissor.y, scissor.width, scissor.height, title.text.c_str());
-                fflush(stdout);
                 return;
             }
 
