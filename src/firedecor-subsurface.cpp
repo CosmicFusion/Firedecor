@@ -250,11 +250,11 @@ namespace wf::firedecor {
         }
 
         void render_title(const render_target_t& fb, geometry_t geometry, geometry_t scissor) {
-            if (auto view = _view.lock()) {
-                if (title_needs_update) {
-                    update_title(fb.scale);
-                }
+            if (title_needs_update) {
+                update_title(fb.scale);
+            }
 
+            if (auto view = _view.lock()) {
                 simple_texture_t *texture;
                 uint32_t bits = OpenGL::TEXTURE_TRANSFORM_INVERT_Y;
                 texture = &title.hor[view->activated];
