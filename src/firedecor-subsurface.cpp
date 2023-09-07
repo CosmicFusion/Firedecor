@@ -367,19 +367,15 @@ namespace wf::firedecor {
             for (auto item : renderables) {
                 int32_t bits = 0;
                 if (item->get_type() == DECORATION_AREA_TITLE) {
-                    /*wlr_box title_clip = geometry;
+                    // FIXME: clip title so it doesn't overlap with buttons
+                    // these sizes should not be hardcoded
+                    wlr_box title_clip = geometry;
                     title_clip.x += 8;
                     title_clip.width -= 98;
 
-                    if (!wlr_box_intersection(&title_clip, &clip, &title_clip)) {
-                        title_clip = scissor;
-                    }*/
-
-                    /*printf("geometry: %d %d / %d %d ## scissor: %d %d / %d %d ## (%s)\n",
-                           geometry.x, geometry.y, geometry.width, geometry.height,
-                           scissor.x, scissor.y, scissor.width, scissor.height, title.text.c_str());*/
-
-                    render_title(fb, item->get_geometry() + origin, clip);
+                    if (wlr_box_intersection(&title_clip, &clip, &title_clip)) {
+                        render_title(fb, item->get_geometry() + origin, title_clip);
+                    }
                 } else if (item->get_type() == DECORATION_AREA_BUTTON) {
                     if (auto view = _view.lock()) {
                         item->as_button().set_active(view->activated);
