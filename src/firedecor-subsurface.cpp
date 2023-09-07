@@ -250,7 +250,7 @@ namespace wf::firedecor {
         }
 
         void render_title(const render_target_t& fb, geometry_t geometry, geometry_t scissor) {
-            if (1 || title_needs_update) {
+            if (title_needs_update) {
                 update_title(fb.scale);
             }
 
@@ -259,16 +259,13 @@ namespace wf::firedecor {
                 uint32_t bits = OpenGL::TEXTURE_TRANSFORM_INVERT_Y;
                 texture = &title.hor[view->activated];
 
+                // optimization skipping damage that is outside of title bar area (below it)
                 if (scissor.y < 0) {
-                    printf("render_title: %d %d / %d %d (%s)\n", scissor.x, scissor.y, scissor.width, scissor.height, title.text.c_str());  fflush(stdout);
-
                     OpenGL::render_begin(fb);
                     fb.logic_scissor(scissor);
                     OpenGL::render_texture(texture->tex, fb, geometry, glm::vec4(1.0f), bits);
                     OpenGL::render_end();
                 }
-            } else {
-                printf("render_title: can't lock\n");  fflush(stdout);
             }
         }
 
@@ -367,8 +364,8 @@ namespace wf::firedecor {
             for (auto item : renderables) {
                 int32_t bits = 0;
                 if (item->get_type() == DECORATION_AREA_TITLE) {
-                    // FIXME: clip title so it doesn't overlap with buttons
-                    // these sizes should not be hardcoded
+                    // clip title so it doesn't overlap with buttons
+                    // FIXME: these sizes should not be hardcoded
                     wlr_box title_clip = geometry;
                     title_clip.x += 8;
                     title_clip.width -= 98;
@@ -381,9 +378,9 @@ namespace wf::firedecor {
                         item->as_button().set_active(view->activated);
                         //item->as_button().set_maximized(view->tiled_edges);
                     }
-                    //item->as_button().render(fb, item->get_geometry() + origin, clip);
+                    item->as_button().render(fb, item->get_geometry() + origin, clip);
                 } else if (item->get_type() == DECORATION_AREA_ICON) {
-                    //render_icon(fb, item->get_geometry() + origin, clip, bits);
+                    render_icon(fb, item->get_geometry() + origin, clip, bits);
                 }
             }
         }
