@@ -316,8 +316,8 @@ namespace wf {
             create_areas(width, height, title_size);
 
             // Areas for resizing only, used for movement area calculation
-            int top_resize    = std::min(std::max(border_size.top - max_height, 7),
-                                         border_size.top);
+            int top_resize    = std::min(std::max(border_size.top - max_height - 7, 7),
+                                         border_size.top - 7);
             int left_resize   = std::min(std::max(border_size.left - max_height, 7),
                                          border_size.left);
             int bottom_resize = std::min(std::max(border_size.bottom - max_height, 7),
