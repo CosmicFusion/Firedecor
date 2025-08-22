@@ -3,11 +3,11 @@
 #include <vector>
 #include <wayfire/region.hpp>
 
-#include "firedecor-buttons.hpp"
-#include "firedecor-theme.hpp"
+#include "cosmodecor-buttons.hpp"
+#include "cosmodecor-theme.hpp"
 
 namespace wf {
-    namespace firedecor {
+    namespace cosmodecor {
 
         static constexpr uint32_t AREA_RENDERABLE_BIT = (1 << 16);
         static constexpr uint32_t AREA_RESIZE_BIT     = (1 << 17);

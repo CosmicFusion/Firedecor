@@ -14,9 +14,9 @@
 #include <wayfire/toplevel-view.hpp>
 #include <wayfire/window-manager.hpp>
 
-#include "firedecor-layout.hpp"
-#include "firedecor-theme.hpp"
-#include "firedecor-subsurface.hpp"
+#include "cosmodecor-layout.hpp"
+#include "cosmodecor-theme.hpp"
+#include "cosmodecor-subsurface.hpp"
 
 #include "cairo-simpler.hpp"
 #include "cairo-util.hpp"
@@ -28,7 +28,7 @@
 
 #include <fstream>
 
-namespace wf::firedecor {
+namespace wf::cosmodecor {
 
     class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_interaction_t, public wf::touch_interaction_t
     {
@@ -134,7 +134,7 @@ namespace wf::firedecor {
             wf::config::config_manager_t& config = wf::get_core().config;
             auto option = config.get_option<std::string>(theme + "/" + option_name);
             if (option == nullptr || theme == "default") {
-                return config.get_option<T>("firedecor/" + option_name)->get_value();
+                return config.get_option<T>("cosmodecor/" + option_name)->get_value();
             } else {
                 return wf::option_type::from_string<T>(option->get_value()).value();
             }
@@ -300,17 +300,17 @@ namespace wf::firedecor {
 
                 wf::geometry_t g_o;
                 int o_s = theme.get_outline_size();
-                if (edge == wf::firedecor::EDGE_TOP) {
+                if (edge == wf::cosmodecor::EDGE_TOP) {
                     g_o = { g.x, g.y, g.width, o_s };
                     g = { g.x, g.y + o_s, g.width, g.height - o_s };
-                } else if (edge == wf::firedecor::EDGE_LEFT) {
+                } else if (edge == wf::cosmodecor::EDGE_LEFT) {
                     // the g.y + is probably not correct, but works for now
                     g_o = { g.x, g.y, o_s, g.y + g.height };
                     g = { g.x + o_s, g.y, g.width - o_s, g.y + g.height };
-                } else if (edge == wf::firedecor::EDGE_BOTTOM) {
+                } else if (edge == wf::cosmodecor::EDGE_BOTTOM) {
                     g_o = { g.x, g.y + g.height - o_s, g.width, o_s };
                     g = { g.x, g.y, g.width, g.height - o_s };
-                } else if (edge == wf::firedecor::EDGE_RIGHT) {
+                } else if (edge == wf::cosmodecor::EDGE_RIGHT) {
                     // the g.y + is probably not correct, but works for now
                     g_o = { g.x + g.width - o_s, g.y, o_s, g.y + g.height };
                     g = { g.x, g.y, g.width - o_s, g.y + g.height };
@@ -494,7 +494,7 @@ namespace wf::firedecor {
         }
     };
 
-    wf::firedecor::simple_decorator_t::simple_decorator_t(wayfire_toplevel_view view) {
+    wf::cosmodecor::simple_decorator_t::simple_decorator_t(wayfire_toplevel_view view) {
         this->view = view;
         deco       = std::make_shared<simple_decoration_node_t>(view);
         deco->resize(wf::dimensions(view->get_pending_geometry()));
@@ -520,11 +520,11 @@ namespace wf::firedecor {
         };
     }
 
-    wf::firedecor::simple_decorator_t::~simple_decorator_t() {
+    wf::cosmodecor::simple_decorator_t::~simple_decorator_t() {
         wf::scene::remove_child( deco );
     }
 
-    wf::decoration_margins_t wf::firedecor::simple_decorator_t::get_margins(const wf::toplevel_state_t& state) {
+    wf::decoration_margins_t wf::cosmodecor::simple_decorator_t::get_margins(const wf::toplevel_state_t& state) {
         if (state.fullscreen) {
             return {0, 0, 0, 0};
         }

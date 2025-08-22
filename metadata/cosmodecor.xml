@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <wayfire>
-	<plugin name="firedecor">
-		<_short>Firedecor</_short>
+	<plugin name="cosmodecor">
+		<_short>CosmoDecor</_short>
 		<_long>Alternative decoration for wayfire windows.</_long>
 		<category>Effects</category>
 		<!-- Font -->

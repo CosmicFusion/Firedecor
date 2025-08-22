@@ -7,7 +7,7 @@
 #include <fstream>
 #include <algorithm>
 
-#include "firedecor-theme.hpp"
+#include "cosmodecor-theme.hpp"
 
 #include <filesystem>
 #include <librsvg/rsvg.h>
@@ -17,9 +17,9 @@
 #include <boost/algorithm/string.hpp>
 
 namespace wf {
-    namespace firedecor {
+    namespace cosmodecor {
         /** Create a new theme with the default parameters */
-        decoration_theme_t::decoration_theme_t(wf::firedecor::theme_options options) :
+        decoration_theme_t::decoration_theme_t(wf::cosmodecor::theme_options options) :
             theme_options{options} {}
 
         std::string decoration_theme_t::get_layout() const {
@@ -158,9 +158,9 @@ namespace wf {
         cairo_surface_t *decoration_theme_t::form_button(button_type_t button, double hover,
                                                          bool active, bool maximized, double scale) const {
             if ((std::string)button_style.get_value() != "wayfire" &&
-                (std::string)button_style.get_value() != "firedecor" &&
+                (std::string)button_style.get_value() != "cosmodecor" &&
                 (std::string)button_style.get_value() != "simple") {
-                std::string directory = "/usr/share/firedecor/button-styles/" +
+                std::string directory = "/usr/share/cosmodecor/button-styles/" +
                     (std::string)button_style.get_value() + "/";
                 std::string status;
                 std::string path;
@@ -288,7 +288,7 @@ namespace wf {
                 default:
                     assert(false);
                 }
-            } else if ((std::string)button_style.get_value() == "firedecor") {
+            } else if ((std::string)button_style.get_value() == "cosmodecor") {
                 switch (button) {
                 case BUTTON_CLOSE:
                     {
@@ -468,7 +468,7 @@ namespace wf {
 
         cairo_surface_t *decoration_theme_t::form_icon(std::string app_id, double scale) const {
             std::string line;
-            std::string icons = (std::string)getenv("HOME") + "/.local/share/firedecor_icons";
+            std::string icons = (std::string)getenv("HOME") + "/.local/share/cosmodecor_icons";
             std::ofstream icon_file_out(icons, std::ofstream::out | std::ofstream::app);
 
             while (true) {
@@ -491,7 +491,7 @@ namespace wf {
                 icon_file_in.close();
 
                 std::string icon_name = (std::string)getenv("HOME") +
-                    ".config/firedecor/executable.svg";
+                    ".config/cosmodecor/executable.svg";
                 bool found = false;
 
                 std::vector<std::string> app_dirs = {
@@ -643,7 +643,7 @@ namespace wf {
 
 
                 if (!icon_found) {
-                    std::string icon_path = " /usr/share/firedecor/executable.svg";
+                    std::string icon_path = " /usr/share/cosmodecor/executable.svg";
                     icon_file_out << app_id + icon_path << std::endl;
                 }
             }

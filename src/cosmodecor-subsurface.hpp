@@ -5,10 +5,10 @@
 #include <wayfire/signal-definitions.hpp>
 #include <wayfire/toplevel-view.hpp>
 
-#include "firedecor-theme.hpp"
+#include "cosmodecor-theme.hpp"
 
 class simple_decoration_node_t;
-namespace wf::firedecor {
+namespace wf::cosmodecor {
 
     class simple_decoration_node_t;
 

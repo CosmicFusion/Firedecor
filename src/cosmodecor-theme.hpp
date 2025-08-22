@@ -1,10 +1,10 @@
 #pragma once
 #include <wayfire/render-manager.hpp>
 
-#include "firedecor-buttons.hpp"
+#include "cosmodecor-buttons.hpp"
 
 namespace wf {
-    namespace firedecor {
+    namespace cosmodecor {
 
         struct color_set_t {
             color_t active, inactive;
@@ -101,7 +101,6 @@ namespace wf {
             theme_option_t<bool> inactive_buttons;
 
             theme_option_t<int> icon_size;
-            theme_option_t<std::string> icon_theme;
 
             theme_option_t<int> padding_size;
             theme_option_t<std::string> layout;

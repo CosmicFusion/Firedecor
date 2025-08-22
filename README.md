@@ -1,10 +1,6 @@
-# Firedecor (MNT Reform Fork)
+# CosmoDecor
 
-This is a MNT Reform specific fork of the Firedecor window decoration plugin for the Wayfire window manager. The original code lives at: https://github.com/AhoyISki/Firedecor
-
-## Fork info
-
-The original Firedecor development stopped in 2022. For this fork, I've updated the code several times to track Wayfire 0.8's substantial API changes. I'm also fixing some bugs and removing features and code that appears to complex to understand and maintain. The goal of this fork is just to provide pretty standard rectangular frames and title bars with an icon and familiar minimize/maximize/close buttons. Features like multiple accent colors, rounded or otherwise shaped corners and titles and buttons on other edges than the top are removed over time to simplify the code for maintainability.
+CosmoDecor window decoration plugin for the Wayfire window manager. The original code lives at: https://github.com/mntmn/Firedecor
 
 ## Dependencies
 
@@ -16,8 +12,8 @@ The original Firedecor development stopped in 2022. For this fork, I've updated 
 
 - Building from source:
   ```
-  git clone https://github.com/mntmn/Firedecor
-  cd Firedecor
+  git clone https://github.com/cosmicfusion/CosmoDecor
+  cd CosmoDecor
   meson build
   meson compile -C build
   sudo meson install -C build
@@ -59,7 +55,7 @@ The original Firedecor development stopped in 2022. For this fork, I've updated 
   - other styles will be removed.
 
   If you place anything else on this string, say, something like `my_theme`, you will have to provide `png`s or `svg`s so that the plugin can draw custom buttons. To accomplish that, do the following:
-  1. Create the folder `/usr/share/firedecor/button-styles/`;
+  1. Create the folder `/usr/share/cosmodecor/button-styles/`;
   2. In it, create a folder with the name `my_theme`;
   3. Place figures for the buttons. They'll have to be called something like `type-status.png`, where `type` can be `close`, `minimize`, or `toggle-maximize`, and `status` can be `hovered`, `pressed`, or nothing. E.g. close.png, toggle-maximize-hover.png, minimize-pressed.png. Additionally, if `inactive_buttons` is set to `true`, you have to add a additional images with the `status` of `inactive`. You **Must** provide an image for each of the `type`s and `status`es listed above, so 9 images if `inactive_buttons == false`, and 12 images if `inactive_buttons == true`. The images can be equal to each other, if you don't want do differentiate between different `type`s or `status`es, just make sure that every entry is placed.
  - `normal_min`, `normal_max`, and `normal_close` set their respective button colors when the button isn't hovered. Default values are `#c89e2bff`, `#2ebb3aff`, and `#c24045ff`, respectively.
@@ -82,7 +78,7 @@ The original Firedecor development stopped in 2022. For this fork, I've updated 
   - The symbols `title`, `icon`, `maximize`, `minimize`, and `close`, will place their respective symbols on the window;
   - The symbol `p` will introduce a standardized padding, set by the `padding_size` option. The symbol `P` followed by a number, will place that many pixels of padding, for example, `P7` places 7 pixels of padding on the edge;
   - The symbol `|` changes where the symbols are being placed. Normally, they're on the left of the edge, if you place a `|`, they will be on the center, if you place another `|`, they will be placed on the right. Further `|`s will not change position;
-  - The symbol `-` will change the edge the symbols are being placed in. By default, it will be the top edge, and every `-` will change the edge, counter-clockwise. In previous versions of `wayfire-firedecor`, you needed to end the layout with `-`, that is no longer the case.
+  - The symbol `-` will change the edge the symbols are being placed in. By default, it will be the top edge, and every `-` will change the edge, counter-clockwise. In previous versions of `wayfire-cosmodecor`, you needed to end the layout with `-`, that is no longer the case.
   - The symbol `a` will initiate/end an accented area, it will start one if there wasn't one already, and it will end one if there was. You can more precisely position accents by using paddings, for example `a P5 title P5 a` will place a padding between each end of the accent, giving some space for the title. All corners will be rounded with this option.
   - The symbol `A` is much like `a`, but it is followed by a spaceless string, which tells the program what should be done to the edges of the accent. The default behaviour is to create 2 flat edges, and the available options are:
     - Any of `br tr tl bl` will round the respective corner (`t`op and `b`ottom `l`eft and `r`ight). These can be placed in any order, e.g. `Abltr` will round the top right and bottom left corners.
@@ -112,11 +108,11 @@ The original Firedecor development stopped in 2022. For this fork, I've updated 
 <details><summary>Extra theme options</summary>
 
 - `extra_themes` will be the declaration of existance for any extra themes you want to use, e.g. `dark light discord`. If the theme is not in here, no windows will use it. The default is ``;
-- When it comes to extra themes, the configuration section will look exactly like the regular `firedecor` section, except you won't have the `ignore_views` and `extra_themes` options, and will gain the `uses_if` option;
+- When it comes to extra themes, the configuration section will look exactly like the regular `cosmodecor` section, except you won't have the `ignore_views` and `extra_themes` options, and will gain the `uses_if` option;
 - `uses_if` is of `criteria` type, and will match all the windows that should use the theme of the current section. There is no default, so if it is not present, no window will use the theme;
-- When declaring new themes, you don't need to use every single option on the list. If the option isn't present, the theme will simply use the value from the default `firedecor` theme section, so something like:
+- When declaring new themes, you don't need to use every single option on the list. If the option isn't present, the theme will simply use the value from the default `cosmodecor` theme section, so something like:
   ```ini
-  [firedecor]
+  [cosmodecor]
   border_size = 10 10 10 10
 
   title_color = 0.0 0.0 0.0 1.0
@@ -138,7 +134,7 @@ If this ends up happening, the plugin will use a backup icon, provided by the pl
 1. Set `debug_mode` to true;
 2. Open your app, this should tell you what its `app_id` is, if you have a `title` in `layout`;
 3. Find the icon for this app, it can be anywhere in the computer, and can be either a `png` or an `svg` file;
-4. Find the file `~/.local/share/firedecor_icons`, it should be automatically created by the plugin;
+4. Find the file `~/.local/share/cosmodecor_icons`, it should be automatically created by the plugin;
 5. Find the line containing the `app_id`, it should look like `my_app_id /full/path/to/default/icon`;
 6. Replace the path in that line with the one you found earlier;
 7. Done!

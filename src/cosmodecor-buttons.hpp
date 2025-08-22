@@ -12,7 +12,7 @@
 #include <cairo/cairo.h>
 
 namespace wf {
-    namespace firedecor {
+    namespace cosmodecor {
         class decoration_theme_t;
 
         enum button_type_t {

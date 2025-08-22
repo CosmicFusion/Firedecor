@@ -7,8 +7,8 @@
 #include <wayfire/signal-definitions.hpp>
 #include <wayfire/txn/transaction-manager.hpp>
 
-#include "firedecor-subsurface.hpp"
-#include "firedecor-theme.hpp"
+#include "cosmodecor-subsurface.hpp"
+#include "cosmodecor-theme.hpp"
 #include "wayfire/core.hpp"
 #include "wayfire/signal-provider.hpp"
 #include "wayfire/toplevel-view.hpp"
@@ -16,9 +16,9 @@
 
 #include <stdio.h>
 
-class wayfire_firedecor_t : public wf::plugin_interface_t {
-    wf::view_matcher_t ignore_views{"firedecor/ignore_views"};
-    wf::option_wrapper_t<std::string> extra_themes{"firedecor/extra_themes"};
+class wayfire_cosmodecor_t : public wf::plugin_interface_t {
+    wf::view_matcher_t ignore_views{"cosmodecor/ignore_views"};
+    wf::option_wrapper_t<std::string> extra_themes{"cosmodecor/extra_themes"};
     wf::config::config_manager_t& config = wf::get_core().config;
 
     wf::signal::connection_t<wf::txn::new_transaction_signal> on_new_tx = [this] (wf::txn::new_transaction_signal *ev) {
@@ -27,7 +27,7 @@ class wayfire_firedecor_t : public wf::plugin_interface_t {
             if (auto toplevel = std::dynamic_pointer_cast<wf::toplevel_t>(obj)) {
                 // First check whether the toplevel already has decoration
                 // In that case, we should just set the correct margins
-                if (auto deco = toplevel->get_data<wf::firedecor::simple_decorator_t>()) {
+                if (auto deco = toplevel->get_data<wf::cosmodecor::simple_decorator_t>()) {
                     toplevel->pending().margins = deco->get_margins(toplevel->pending());
                     continue;
                 }
@@ -85,8 +85,8 @@ public:
     void adjust_new_decorations(wayfire_toplevel_view view) {
         auto toplevel = view->toplevel();
 
-        toplevel->store_data(std::make_unique<wf::firedecor::simple_decorator_t>(view));
-        auto  deco    = toplevel->get_data<wf::firedecor::simple_decorator_t>();
+        toplevel->store_data(std::make_unique<wf::cosmodecor::simple_decorator_t>(view));
+        auto  deco    = toplevel->get_data<wf::cosmodecor::simple_decorator_t>();
         auto& pending = toplevel->pending();
         pending.margins = deco->get_margins(pending);
 
@@ -100,7 +100,7 @@ public:
     }
 
     void remove_decoration(wayfire_toplevel_view view) {
-        view->toplevel()->erase_data<wf::firedecor::simple_decorator_t>();
+        view->toplevel()->erase_data<wf::cosmodecor::simple_decorator_t>();
         auto& pending = view->toplevel()->pending();
         if (!pending.fullscreen && !pending.tiled_edges) {
             pending.geometry = wf::shrink_geometry_by_margins(pending.geometry, pending.margins);
@@ -122,4 +122,4 @@ public:
     }
 };
 
-DECLARE_WAYFIRE_PLUGIN(wayfire_firedecor_t);
+DECLARE_WAYFIRE_PLUGIN(wayfire_cosmodecor_t);

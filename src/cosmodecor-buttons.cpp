@@ -1,14 +1,14 @@
 #include <wayfire/opengl.hpp>
 
-#include "firedecor-buttons.hpp"
-#include "firedecor-theme.hpp"
+#include "cosmodecor-buttons.hpp"
+#include "cosmodecor-theme.hpp"
 
 #define HOVERED  1.0
 #define NORMAL   0.0
 #define PRESSED -0.7
 
 namespace wf {
-    namespace firedecor {
+    namespace cosmodecor {
         button_t::button_t(const decoration_theme_t& t, std::function<void()> damage) :
             theme(t), damage_callback(damage) {
             this->texture_dirty = true;

@@ -1,5 +1,5 @@
 project(
-	'firedecor',
+	'cosmodecor',
 	'c',
 	'cpp',
 	version: '0.1',
@@ -15,7 +15,7 @@ project(
 
 wayfire    = dependency('wayfire')
 wf_config  = dependency('wf-config')
-wlroots    = dependency('wlroots')
+wlroots    = dependency('wlroots-0.18')
 rsvg       = dependency('librsvg-2.0')
 pixman     = dependency('pixman-1')
 cairo      = dependency('cairo')
@@ -29,8 +29,8 @@ add_project_arguments(['-DWLR_USE_UNSTABLE'], language: ['cpp', 'c'])
 add_project_arguments(['-DWAYFIRE_PLUGIN'], language: ['cpp', 'c'])
 add_project_link_arguments(['-rdynamic'], language:'cpp')
 
-install_data('share/executable.svg', install_dir: join_paths(get_option('datadir'), 'firedecor'))
-install_data(['share/button-styles/reform/close.png', 'share/button-styles/reform/minimize.png', 'share/button-styles/reform/toggle-maximize.png', 'share/button-styles/reform/close-hovered.png', 'share/button-styles/reform/minimize-hovered.png', 'share/button-styles/reform/toggle-maximize-hovered.png', 'share/button-styles/reform/close-pressed.png', 'share/button-styles/reform/minimize-pressed.png', 'share/button-styles/reform/toggle-maximize-pressed.png'], install_dir: join_paths(get_option('datadir'), 'firedecor/button-styles/reform'))
+install_data('share/executable.svg', install_dir: join_paths(get_option('datadir'), 'cosmodecor'))
+install_data(['share/button-styles/reform/close.png', 'share/button-styles/reform/minimize.png', 'share/button-styles/reform/toggle-maximize.png', 'share/button-styles/reform/close-hovered.png', 'share/button-styles/reform/minimize-hovered.png', 'share/button-styles/reform/toggle-maximize-hovered.png', 'share/button-styles/reform/close-pressed.png', 'share/button-styles/reform/minimize-pressed.png', 'share/button-styles/reform/toggle-maximize-pressed.png'], install_dir: join_paths(get_option('datadir'), 'cosmodecor/button-styles/reform'))
 
 subdir('src')
 subdir('metadata')
@@ -38,7 +38,7 @@ subdir('metadata')
 summary = [
 	'',
 	'----------------',
-	'firedecor @0@'.format(meson.project_version()),
+	'cosmodecor @0@'.format(meson.project_version()),
 	'----------------',
 	''
 ]

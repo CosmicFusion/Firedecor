@@ -3,13 +3,13 @@
 #include <wayfire/nonstd/wlroots-full.hpp>
 #include <wayfire/util.hpp>
 
-#include "firedecor-layout.hpp"
-#include "firedecor-theme.hpp"
+#include "cosmodecor-layout.hpp"
+#include "cosmodecor-theme.hpp"
 
 #include <fstream>
 
 namespace wf {
-    namespace firedecor {
+    namespace cosmodecor {
         // Initialize a new decoration area holding an icon
         decoration_area_t::decoration_area_t(decoration_area_type_t type,
                                              wf::geometry_t g, edge_t edge) {
