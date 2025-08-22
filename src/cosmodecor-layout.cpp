@@ -103,7 +103,7 @@ namespace wf {
             layout(theme.get_layout()),
             border_size_str(theme.get_border_size()),
             border_size(parse_border(border_size_str)),
-            corner_radius(0),
+            corner_radius(theme.get_corner_radius()),
             outline_size(theme.get_outline_size()),
             button_size(theme.get_button_size()),
             icon_size(theme.get_icon_size()),

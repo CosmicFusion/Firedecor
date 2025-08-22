@@ -85,6 +85,7 @@ namespace wf {
             theme_option_t<std::string> border_size;
             theme_option_t<wf::color_t> active_border;
             theme_option_t<wf::color_t> inactive_border;
+            theme_option_t<int> corner_radius;
 
             theme_option_t<int> outline_size;
             theme_option_t<wf::color_t> active_outline;
@@ -116,6 +117,8 @@ namespace wf {
             int get_font_size() const;
             /** @return The maximum text size, in pixels */
             int get_max_title_size() const;
+            /** @return The radius for rounded corners */
+            int get_corner_radius() const;
             /** @return The available outline for resizing */
             int get_outline_size() const;
             /** @return The equal width and height of the button */

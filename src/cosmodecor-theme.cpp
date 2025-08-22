@@ -30,6 +30,9 @@ namespace wf {
         std::string decoration_theme_t::get_border_size() const {
             return border_size.get_value();
         }
+        int decoration_theme_t::get_corner_radius() const {
+            return corner_radius.get_value();
+        }
         int decoration_theme_t::get_outline_size() const {
             return outline_size.get_value();
         }

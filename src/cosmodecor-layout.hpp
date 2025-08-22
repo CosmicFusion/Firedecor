@@ -15,6 +15,7 @@ namespace wf {
         static constexpr uint32_t AREA_TEXT_BIT       = (1 << 19);
         static constexpr uint32_t AREA_BACKGROUND_BIT = (1 << 20);
         static constexpr uint32_t AREA_ACCENT_BIT     = (1 << 21);
+        static constexpr uint32_t AREA_RADIUS_BIT = (1 << 19);
 
         /** Different types of areas around the decoration */
         enum decoration_area_type_t {
@@ -28,6 +29,7 @@ namespace wf {
             DECORATION_AREA_RESIZE_BOTTOM = WLR_EDGE_BOTTOM | AREA_RESIZE_BIT,
             DECORATION_AREA_BACKGROUND = AREA_BACKGROUND_BIT,
             DECORATION_AREA_ACCENT     = AREA_ACCENT_BIT,
+            DECORATION_AREA_RADIUS = AREA_RADIUS_BIT,
         };
 
         /**

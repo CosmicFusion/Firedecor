@@ -151,6 +151,7 @@ namespace wf::cosmodecor {
                 get_option<std::string>(theme, "border_size"),
                 get_option<wf::color_t>(theme, "active_border"),
                 get_option<wf::color_t>(theme, "inactive_border"),
+                get_option<int>(theme, "corner_radius"),
 
                 get_option<int>(theme, "outline_size"),
                 get_option<wf::color_t>(theme, "active_outline"),
