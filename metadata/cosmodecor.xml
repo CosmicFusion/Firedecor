@@ -76,53 +76,13 @@
 		<option name="button_style" type="string">
 			<_short>Button style to be used</_short>
 			<_long>Sets the style to be used for the buttons.</_long>
-			<default>simple</default>
-		</option>
-		<option name="normal_min" type="color">
-			<_short>Minimize button color when it is not hovered</_short>
-			<_long>Sets the minimize button color when the button isn't hovered.</_long>
-			<default>#c89e2bff</default>
-		</option>
-		<option name="hovered_min" type="color">
-			<_short>Minimize button color when it is hovered</_short>
-			<_long>Sets the minimize button color when the button is hovered.</_long>
-			<default>#ffe450ff</default>
-		</option>
-		<option name="normal_max" type="color">
-			<_short>Maximize button color when it is not hovered</_short>
-			<_long>Sets the maximize button color when the button isn't hovered.</_long>
-			<default>#2ebb3aff</default>
-		</option>
-		<option name="hovered_max" type="color">
-			<_short>Maximize button color when it is hovered</_short>
-			<_long>Sets the maximize button color when the button is hovered.</_long>
-			<default>#60fc79ff</default>
-		</option>
-		<option name="normal_close" type="color">x
-			<_short>Close button color when it is not hovered</_short>
-			<_long>Sets the close button color when the button isn't hovered.</_long>
-			<default>#c24045ff</default>
-		</option>
-		<option name="hovered_close" type="color">
-			<_short>Close button color when it is hovered</_short>
-			<_long>Sets the close button color when the button is hovered.</_long>
-			<default>#ff6572ff</default>
-		</option>
-		<option name="inactive_buttons" type="bool">
-			<_short>Button style to be used</_short>
-			<_long>Sets the style to be used for the buttons.</_long>
-			<default>false</default>
+			<default>reform</default>
 		</option>
 		<!-- Icon -->
 		<option name="icon_size" type="int">
 			<_short>Icon size to be used</_short>
 			<_long>Sets the size to be used for the icons.</_long>
 			<default>20</default>
-		</option>
-		<option name="icon_theme" type="string">
-			<_short>Icon theme to be used</_short>
-			<_long>Sets the theme to be used for the icons.</_long>
-			<default>hicolor</default>
 		</option>
 		<!-- Accents -->
 		<option name="active_accent" type="color">
@@ -153,13 +113,13 @@
 			<default>none</default>
 		</option>
 		<option name="debug_mode" type="bool">
-    		<_short>Show titles as app_ids instead</_short>
+    		<_short>Show titles as app_ids instead (Debug Mode)</_short>
     		<_long>Show the app_id of applications, instead of title, for icon referencing</_long>
     		<default>false</default>
 		</option>
 		<option name="round_on" type="string">
-			<_short>Radius of rounded corners</_short>
-			<_long>Sets the radius of the decoration corners.</_long>
+			<_short>Rounded corners sides</_short>
+			<_long>Chooses which corners will be rounded. `tr` means top right, `tl` is top left, `bl` is bottom left, `br` is bottom right, and `all` is all of them, e.g. `tl br` will round the top left and bottom right corners. Default is `all`.</_long>
 			<default>all</default>
 		</option>
 		<option name="extra_themes" type="string">

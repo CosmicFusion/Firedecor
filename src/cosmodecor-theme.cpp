@@ -166,11 +166,7 @@ namespace wf {
                 std::string path;
 
                 if (hover == 0.0) {
-                    if (!active && inactive_buttons.get_value()) {
-                        status = "-inactive.";
-                    } else {
-                        status = ".";
-                    }
+                    status = ".";
                 } else if (hover < 0.0) {
                     status = "-pressed.";
                 } else {
@@ -215,30 +211,9 @@ namespace wf {
             color_t base, hovered;
             double line;
 
-            /** Coloured base on hover/press. Don't compare float to 0 */
-            if (fabs(hover) > 1e-3 || (inactive_buttons.get_value() && active) ||
-                !inactive_buttons.get_value()) {
-                switch (button) {
-                case BUTTON_CLOSE:
-                    base = normal_close.get_value();
-                    hovered = hovered_close.get_value();
-                    break;
-                case BUTTON_TOGGLE_MAXIMIZE:
-                    base = normal_max.get_value();
-                    hovered = hovered_max.get_value();
-                    break;
-                case BUTTON_MINIMIZE:
-                    base = normal_min.get_value();
-                    hovered = hovered_min.get_value();
-                    break;
-                default:
-                    assert(false);
-                }
-                line = 0.54;
-            } else {
-                base = { 0.40, 0.40, 0.43, 1.0 };
-                line = 0.27;
-            }
+            
+            base = { 0.40, 0.40, 0.43, 1.0 };
+               line = 0.27;
 
             /** Draw the base */
             cairo_set_source_rgba(cr,
@@ -589,8 +564,14 @@ namespace wf {
                 };
 
                 /* Check for the existance of the icon_theme.get_value() on all reasonable locations */
+
+                GSettings *gsettings = g_settings_new("org.gnome.desktop.interface");
+                gchar *icon_theme_value     = g_settings_get_string(gsettings, "icon-theme");
+
+                std::string icon_theme = std::string(icon_theme_value);
+
                 for (auto icon_dir : icon_dirs) {
-                    if (auto dir = icon_dir + (std::string)icon_theme.get_value();
+                    if (auto dir = icon_dir + icon_theme;
                         std::count(default_icon_themes.begin(), default_icon_themes.end(),
                                    dir) == 0) {
                         if (exists(dir)) {
@@ -598,6 +579,8 @@ namespace wf {
                         }
                     }
                 }
+                g_free(icon_theme_value);
+                g_object_unref(gsettings);
 
                 for (auto icon_theme : default_icon_themes) {
                     if (exists(icon_theme)) {
