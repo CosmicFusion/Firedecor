@@ -29,6 +29,7 @@
 #include <fstream>
 
 namespace wf::cosmodecor {
+wf::option_wrapper_t<bool> maximized_titlebar{"cosmodecor/maximized_titlebar"};
 
     class simple_decoration_node_t : public wf::scene::node_t, public wf::pointer_interaction_t, public wf::touch_interaction_t
     {
@@ -507,7 +508,7 @@ namespace wf::cosmodecor {
 
         on_view_fullscreen = [this] (auto) {
             deco->update_decoration_size();
-            if (!this->view->toplevel()->current().fullscreen) {
+            if (!this->view->toplevel()->current().fullscreen || !this->view->toplevel()->current().tiled_edges) {
                 deco->resize(wf::dimensions(this->view->get_geometry()));
             }
         };
@@ -518,7 +519,7 @@ namespace wf::cosmodecor {
     }
 
     wf::decoration_margins_t wf::cosmodecor::simple_decorator_t::get_margins(const wf::toplevel_state_t& state) {
-        if (state.fullscreen) {
+        if (state.fullscreen || (!maximized_titlebar && state.tiled_edges)) {
             return {0, 0, 0, 0};
         }
 

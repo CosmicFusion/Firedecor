@@ -31,6 +31,11 @@
 			<default>750</default>
 		</option>
 		<!-- Border -->
+		<option name="maximized_titlebar" type="bool">
+			<_short>Draw titlebar on maximized windows</_short>
+			<_long>Whether or not to render titlebar with title text and buttons on maximized windows.</_long>
+			<default>true</default>
+		</option>
 		<option name="border_size" type="string">
 			<_short>Border size</_short>
 			<_long>Sets the border size in pixels.</_long>
