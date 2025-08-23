@@ -96,11 +96,15 @@ namespace wf {
 
             theme_option_t<int> icon_size;
 
+            theme_option_t<wf::color_t> active_accent;
+            theme_option_t<wf::color_t> inactive_accent;
+
             theme_option_t<int> padding_size;
             theme_option_t<std::string> layout;
 
             theme_option_t<std::string> ignore_views;
             theme_option_t<bool> debug_mode;
+            theme_option_t<std::string> round_on;
         };
 
         class decoration_theme_t : private theme_options {
@@ -143,6 +147,8 @@ namespace wf {
             bool has_title_orientation(orientation_t orientation) const;
             /** @return True if debug_mode is on */
             bool get_debug_mode() const;
+            /** @return Where corners should be drawn */
+            std::string get_round_on() const;
 
             /**
              * Get what the title size should be, given a text for the title, useful for
@@ -156,6 +162,18 @@ namespace wf {
              */
             cairo_surface_t *form_title(std::string text, wf::dimensions_t title_size,
                                         bool active, orientation_t orientation, double scale) const;
+
+            /**
+             * Render the corners for active and inactive windows. 
+             * @param active The activation state of the window.
+             * @param r the radius of the corner.
+             * @param scale The scale of the framebuffer.
+             * @param m The matrix to transform the corner.
+             * @param height The height of the corner, set by radius or the border size.
+             */
+            cairo_surface_t *form_corner(bool active, int r, matrix<double> m, 
+                                        int height) const;
+
 
             /**
              * Get the icon for the given button.

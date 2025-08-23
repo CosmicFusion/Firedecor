@@ -19,7 +19,8 @@
 #include "cosmodecor-subsurface.hpp"
 
 #include "cairo-simpler.hpp"
-#include "cairo-util.hpp"
+//#include "cairo-util.hpp"
+#include <wayfire/plugins/common/cairo-util.hpp>
 
 #define INACTIVE 0
 #define ACTIVE 1
@@ -116,10 +117,32 @@ wf::option_wrapper_t<bool> maximized_titlebar{"cosmodecor/maximized_titlebar"};
             std::string app_id = "";
         } icon;
 
+
+        // Corner Varibles
+        struct corner_texture_t {
+            simple_texture_t tex[2];
+            cairo_surface_t *surf[2];
+            geometry_t g;
+            int r;
+        };
+
+        struct {
+            corner_texture_t tr, tl, bl, br;
+        } corners;
+
         // Edge variables
         struct edge_colors_t {
             color_set_t border, outline;
         } edges;
+
+        /** Accent variables */
+        struct accent_texture_t {
+            simple_texture_t t_trbr[2];
+            simple_texture_t t_tlbl[2];
+            int radius;
+        };
+
+        std::vector<accent_texture_t> accent_textures;
 
         // Other general variables
         decoration_theme_t theme;
@@ -127,8 +150,61 @@ wf::option_wrapper_t<bool> maximized_titlebar{"cosmodecor/maximized_titlebar"};
         region_t cached_region;
         dimensions_t size;
 
+    void update_corners(edge_colors_t colors, int corner_radius, double scale) {
+		if ((this->corner_radius != corner_radius) ||
+			(edges.border != colors.border) ||
+			(edges.outline != colors.outline)) {
+    		corners.tr.r = corners.tl.r = corners.bl.r = corners.br.r = 0;
+
+    		std::stringstream round_on_str(theme.get_round_on());
+    		std::string corner;
+    		while (round_on_str >> corner) {
+        		if (corner == "all") {
+            		corners.tr.r = corners.tl.r = corners.bl.r = corners.br.r
+        		                 = theme.get_corner_radius() * scale;
+            		break;
+        		} else if (corner == "tr") {
+            		corners.tr.r = (theme.get_corner_radius() * scale);
+        		} else if (corner == "tl") {
+            		corners.tl.r = (theme.get_corner_radius() * scale);
+        		} else if (corner == "bl") {
+            		corners.bl.r = (theme.get_corner_radius() * scale);
+        		} else if (corner == "br") {
+            		corners.br.r = (theme.get_corner_radius() * scale);
+        		}
+    		}
+    		int height = std::max( { corner_radius, border_size.top,
+    		                         border_size.bottom });
+    		auto create_s_and_t = [&](corner_texture_t& t, matrix<double> m, int r) {
+        		for (auto a : { ACTIVE, INACTIVE }) {
+            		t.surf[a] = theme.form_corner(a, r, m, height);
+        			cairo_surface_upload_to_texture(t.surf[a], t.tex[a]);
+        		}
+    		};
+    		/** The transformations are how we create 4 different corners */
+    		create_s_and_t(corners.tr, { scale, 0, 0, scale }, corners.tr.r);
+    		create_s_and_t(corners.tl, { -scale, 0, 0, scale }, corners.tl.r);
+    		create_s_and_t(corners.bl, { -scale, 0, 0, -scale }, corners.bl.r);
+    		create_s_and_t(corners.br, { scale, 0, 0, -scale }, corners.br.r);
+
+    		corners.tr.g = { size.width - corner_radius, 0,
+    		                     corner_radius, height };
+    		corners.tl.g = { 0, 0, corner_radius, height };
+    		corners.bl.g = { 0, size.height - height, corner_radius, height };
+    		corners.br.g = { size.width - corner_radius, size.height - height,
+    		                     corner_radius, height };
+
+			edges.border.active    = colors.border.active;
+			edges.border.inactive  = colors.border.inactive;
+			edges.outline.active   = colors.outline.active;
+			edges.outline.inactive = colors.outline.inactive;
+			this->corner_radius    = corner_radius;
+		}
+	}
+
     public:
         border_size_t border_size;
+        int corner_radius;
 
         template<typename T>
         T get_option(std::string theme, std::string option_name) {
@@ -163,11 +239,15 @@ wf::option_wrapper_t<bool> maximized_titlebar{"cosmodecor/maximized_titlebar"};
 
                 get_option<int>(theme, "icon_size"),
 
+                get_option<wf::color_t>(theme, "active_accent"),
+                get_option<wf::color_t>(theme, "inactive_accent"),
+
                 get_option<int>(theme, "padding_size"),
                 get_option<std::string>(theme, "layout"),
 
                 get_option<std::string>(theme, "ignore_views"),
-                get_option<bool>(theme, "debug_mode")
+                get_option<bool>(theme, "debug_mode"),
+                get_option<std::string>(theme, "round_on")
             };
             return options;
         }
@@ -276,13 +356,293 @@ wf::option_wrapper_t<bool> maximized_titlebar{"cosmodecor/maximized_titlebar"};
             return { c.r * c.a, c.g * c.a, c.b * c.a, c.a };
         }
 
+    void form_accent_corners(int r, geometry_t accent, std::string corner_style,
+                             matrix<int> m, edge_t edge) {
+        if (auto view = _view.lock()) {
+        const auto format = CAIRO_FORMAT_ARGB32;
+        cairo_surface_t *surfaces[4];
+        double angle = 0;
+
+        /** Colors of the accent and background, respectively */
+        color_t a_color;
+        color_t b_color;
+
+        wf::point_t a_origin = { accent.x, accent.y };
+
+        int h = std::max({ corner_radius, border_size.top, border_size.bottom });
+
+        wf::geometry_t a_edges[2];
+        if (m.xx == 1) {
+            a_edges[0] = { 0, 0, r, accent.height };
+            a_edges[1] = { accent.width - r, 0, r, accent.height };
+        } else {
+            a_edges[0] = { 0, 0, accent.width, r };
+            a_edges[1] = { 0, accent.height - r, accent.width, r };
+        }
+
+        wf::geometry_t cut;
+        if (m.xy == 0) { 
+            cut = { accent.x + r, accent.y, accent.width - 2 * r, accent.height };
+        } else {
+            cut = { accent.x, accent.y + r, accent.width, accent.height - 2 * r };
+        }
+
+        /**** Creation of the master path, containing all accent edge textures */
+        const cairo_matrix_t matrix = {
+            (double)m.xx, (double)m.xy, (double)m.yx, (double)m.yy, 0, 0
+        };
+
+        /** Array used to determine if a line starts on the corner or not */
+        struct { int tr = 0, br = 0, bl = 0, tl = 0; } retract;
+
+        /** Calculate where to retract, based on diagonality */
+        for (int i = 0; auto c : corner_style) {
+            if (c == '/') {
+                if (i == 0) { 
+                    retract.tl = r ;
+                } else {
+                    retract.br = r;
+                }
+                i++;
+            } else if (c == '\\') {
+                if (i == 0) { 
+                    retract.bl = r ;
+                } else {
+                    retract.tr = r;
+                }
+                i++;
+            } else if (c == '!') {
+                i++;
+            }
+        }
+
+        /** "Untransformed" accent area, used for correct transformations later on */
+        const wf::dimensions_t mod_a = {
+            abs(accent.width * m.xx + accent.height * m.xy),
+            abs(accent.width * m.yx + accent.height * m.yy)
+        };
+
+        auto full_surface = cairo_image_surface_create(format, accent.width,
+                                                       accent.height);
+        auto cr = cairo_create(full_surface);
+
+        /** A corner indexing array and the string with the final corners to round */
+        std::string c_strs[4] = { "br", "tr", "tl", "bl" };
+        std::string to_round;
+
+        /** Deciding which corners to round, based on the string and on rotation */
+        if (corner_style == "a") {
+            to_round = "brtrtlbl";
+            retract.br = r;
+        } else {
+            /** True mathematical modulo */
+            auto modulo = [](int a, int b) -> int {
+               return a - b * floor((double)a / b);
+            };
+
+            for (int c_to_rotate = 0; auto str : c_strs) {
+               if (corner_style.find(str) != std::string::npos) {
+
+                   /**
+                    * This function effectively rotates the chosen corner.
+                    * When m.xy == 1 (left edge), br becomes tr, tr becomes tl, etc.
+                    * On the right edge, the opposite happens.
+                    * This is to keep the correct corners rounded for the end user.
+                    */
+                   to_round += c_strs[modulo(c_to_rotate - m.xy, 4)];
+                   if (modulo(c_to_rotate - m.xy, 4) == 0) { retract.br = r; }
+               }
+               c_to_rotate++;
+            }
+        }
+
+        /** Point of rotation, in case it is needed */
+        int rotation_x_d = ((m.xy == 1) ? mod_a.height : mod_a.width ) / 2;
+        wf::point_t rotation_point = { rotation_x_d, rotation_x_d };
+
+        /** Rotation depending on the edge */
+        cairo_translate(cr, rotation_point);
+        cairo_transform(cr, &matrix);
+        cairo_translate(cr, -rotation_point);
+
+        /** Lambda that creates a rounded or flat corner */
+        auto create_corner = [&](int w, int h, int i) {
+            if (to_round.find(c_strs[i]) != std::string::npos) {
+                cairo_arc(cr, w + ((i < 2) ? -r : r), h + ((i % 3 == 0) ? r : -r), r,
+                          M_PI_2 * (i - 1), M_PI_2 * i);
+            } else {
+                if (i % 2 == 0) { cairo_line_to(cr, w, h); }
+                cairo_line_to(cr, w, h + ((i == 0) ? r : ((i == 2) ? -r : 0)));
+            }
+        };
+
+        cairo_move_to(cr, mod_a.width - retract.br, 0);
+        if (to_round.find("r") == std::string::npos) {
+            cairo_line_to(cr, mod_a.width - retract.tr, mod_a.height);
+        } else {
+            create_corner(mod_a.width, 0, 0);
+            create_corner(mod_a.width, mod_a.height, 1);
+        }
+        if (to_round.find("l") == std::string::npos) {
+            cairo_line_to(cr, retract.tl, mod_a.height);
+            cairo_line_to(cr, retract.bl, 0);
+        } else {
+            create_corner(0, mod_a.height, 2);
+            create_corner(0, 0, 3);
+        }
+        cairo_close_path(cr);
+        auto master_path = cairo_copy_path(cr);
+        cairo_destroy(cr);
+        cairo_surface_destroy(full_surface);
+        /****/
+        
+        for (int i = 0, j = 0; i < 4; i++, angle += M_PI / 2, j = i % 2) {
+            if (i < 2) {
+                a_color = theme.get_accent_colors().inactive;
+                b_color = theme.get_border_colors().inactive;
+            } else {
+                a_color = theme.get_accent_colors().active;
+                b_color = theme.get_border_colors().active;
+            }
+            int width = a_edges[j].width;
+            int height = a_edges[j].height;
+                
+            surfaces[i] = cairo_image_surface_create(format, width, height);
+            auto cr_a = cairo_create(surfaces[i]);
+
+            /** Background rectangle, behind the accent's corner */
+            cairo_set_source_rgba(cr_a, b_color);
+            cairo_rectangle(cr_a, 0, 0, a_edges[j].width, a_edges[j].height);
+            cairo_fill(cr_a);
+
+            /**** Outline, done early so it can also be cropped off */
+            /** Translation to the correct rotation */
+            cairo_translate(cr_a , rotation_point); 
+            cairo_transform(cr_a , &matrix);
+            cairo_translate(cr_a , -rotation_point); 
+
+            int o_size = theme.get_outline_size();
+            auto outline_color = (view->activated) ?
+                                 alpha_trans(theme.get_outline_colors().active) :
+                                 alpha_trans(theme.get_outline_colors().inactive);
+
+
+            /** Draw outline on the bottom in case it is in the bottom edge */
+            int h_offset = (edge == EDGE_BOTTOM) ? mod_a.height : o_size;
+
+            cairo_set_source_rgba(cr_a, outline_color);
+            cairo_rectangle(cr_a, 0, mod_a.height - h_offset, mod_a.width, o_size);
+            cairo_fill(cr_a);
+            /****/
+
+            /** Dealing with intersection between the view's corners and accent */
+            for (auto *c : { &corners.tr, &corners.tl, &corners.bl, &corners.br } ) {
+
+                /** Accent edge translated by the accent's origin */
+                wf::geometry_t a_edge = a_edges[j] + a_origin;
+
+                /** Skip everything if the areas don't intersect */
+                auto in = geometry_intersection(a_edge, c->g);
+                if (in.width == 0 || in.height == 0) { continue; }
+
+                /**** Rectangle to cut the background from the accent's corner */
+                /** View's corner position relative to the accent's corner */
+                point_t v_rel_a = { 
+                    c->g.x - a_edge.x, c->g.y - a_edge.y
+                };
+
+                cairo_set_operator(cr_a, CAIRO_OPERATOR_CLEAR);
+                cairo_rectangle(cr_a, v_rel_a, corner_radius, h);
+                cairo_fill(cr_a);
+                /****/
+
+                /** Removal of intersecting areas from the view corner */
+                for (auto active : { ACTIVE, INACTIVE }) {
+
+                    /**** Removing the edges with cut, flat, or diagonal corners */
+                    /** Surface to remove from, the view corner in this case */
+                    auto cr_v = cairo_create(c->surf[active]);
+                    cairo_set_operator(cr_v, CAIRO_OPERATOR_CLEAR);
+
+                    /** Transformed br accent corner, relative to the view corner */
+                    wf::point_t t_br_rel_v = {
+                        (a_origin.x) - c->g.x,
+                        (c->g.y + c->g.height) - (a_origin.y + accent.height)
+                    };
+
+                    cairo_translate(cr_v, t_br_rel_v.x, t_br_rel_v.y);
+
+                    cairo_translate(cr_v , rotation_point); 
+                    cairo_transform(cr_v , &matrix);
+                    cairo_translate(cr_v , -rotation_point); 
+
+                    cairo_append_path(cr_v, master_path);
+                    cairo_fill(cr);
+                    /****/
+
+                    /**** Clear the view's corner with the accent rectangles */
+                    /** Bottom of the rectangle relative to the view's corner */
+                    wf::point_t reb_rel_v;
+                    reb_rel_v.y = (c->g.y + c->g.height) - (cut.y + cut.height);
+                    reb_rel_v.x = (cut.x - c->g.x);
+
+                    cairo_set_operator(cr_v, CAIRO_OPERATOR_CLEAR);
+                    cairo_rectangle(cr_v, reb_rel_v, cut.width, cut.height);
+                    cairo_fill(cr_v);
+                    /****/
+                            
+                    cairo_surface_upload_to_texture(c->surf[active], c->tex[active]);
+                    cairo_destroy(cr_v);
+                }
+            }
+
+            /**** Final drawing of accent corner, overlaying the drawn rectangle */
+            cairo_set_operator(cr_a, CAIRO_OPERATOR_SOURCE);
+
+            wf::point_t t_br = {
+                (r - mod_a.width) * (m.xx * (i % 2) + m.xy * (1 - i % 2)), 0
+            };
+
+            cairo_set_source_rgba(cr_a, a_color);
+            cairo_translate(cr_a, t_br.x, t_br.y);
+            cairo_append_path(cr_a, master_path);
+            cairo_fill(cr_a);
+            cairo_destroy(cr_a);
+            /****/
+        }
+        auto& texture = accent_textures.back();
+        cairo_surface_upload_to_texture(surfaces[0], texture.t_trbr[INACTIVE]);
+        cairo_surface_upload_to_texture(surfaces[1], texture.t_tlbl[INACTIVE]);
+        cairo_surface_upload_to_texture(surfaces[2], texture.t_trbr[ACTIVE]);
+        cairo_surface_upload_to_texture(surfaces[3], texture.t_tlbl[ACTIVE]);
+        texture.radius = r;
+
+        for (auto surface : surfaces) { cairo_surface_destroy(surface); }
+        cairo_path_destroy(master_path);
+        }
+    }
+
         void render_background_area(const render_target_t& fb, geometry_t g,
-                                    point_t rect, geometry_t scissor, unsigned long i,
-                                    decoration_area_type_t type, matrix<int> m,
-                                    edge_t edge) {
+                                point_t rect, geometry_t scissor,
+                                std::string rounded, unsigned long i,
+                                decoration_area_type_t type, matrix<int> m,
+                                edge_t edge) {
             if (auto view = _view.lock()) {
                 // The view's origin
                 point_t o = { rect.x, rect.y };
+
+                /**** Render the corners of an accent */
+                int r;
+
+                /** Create the corners, it should happen once per accent */
+                if (accent_textures.size() <= i) {
+                    accent_textures.resize(i + 1);
+                    r = std::min({ ceil((double)g.height / 2), ceil((double)g.width / 2),
+                                (double)corner_radius});
+                    form_accent_corners(r, g, rounded, m, edge);
+                }
+
+                r = accent_textures.at(i).radius;
 
                 // Render a single rectangle when the area is a background
                 color_t color = (view->activated) ?
@@ -313,6 +673,13 @@ wf::option_wrapper_t<bool> maximized_titlebar{"cosmodecor/maximized_titlebar"};
 
                 OpenGL::render_begin(fb);
                 fb.logic_scissor(scissor);
+                /** Outlines */
+                bool a = view->activated;
+                /** Rendering all corners */
+                for (auto *c : { &corners.tr, &corners.tl, &corners.bl, &corners.br }) {
+                    OpenGL::render_texture(c->tex[a].tex, fb, c->g + o, glm::vec4(1.0f));
+                }
+                
                 OpenGL::render_rectangle(g + o, color, fb.get_orthographic_projection());
                 OpenGL::render_rectangle(g_o, o_color, fb.get_orthographic_projection());
                 OpenGL::render_end();
@@ -328,12 +695,15 @@ wf::option_wrapper_t<bool> maximized_titlebar{"cosmodecor/maximized_titlebar"};
             colors.border.active = alpha_trans(colors.border.active);
             colors.border.inactive = alpha_trans(colors.border.inactive);
 
+            int r = theme.get_corner_radius() * fb.scale;
+            update_corners(colors, r, fb.scale);
+
             // Borders
             unsigned long i = 0;
             point_t rect_o = { rect.x, rect.y };
 
             for (auto area : layout.get_background_areas()) {
-                render_background_area(fb, area->get_geometry(), rect_o, scissor, i, area->get_type(),
+                render_background_area(fb, area->get_geometry(), rect_o, scissor, area->get_corners(), i, area->get_type(),
                                        area->get_m(), area->get_edge());
                 i++;
             }

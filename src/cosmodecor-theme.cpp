@@ -51,6 +51,9 @@ namespace wf {
         int decoration_theme_t::get_padding_size() const {
             return padding_size.get_value();
         }
+        std::string decoration_theme_t::get_round_on() const {
+            return round_on.get_value();
+        }
 
         /* Color return functions */
         color_set_t decoration_theme_t::get_border_colors() const {
@@ -61,6 +64,9 @@ namespace wf {
         }
         color_set_t decoration_theme_t::get_title_colors() const {
             return { active_title.get_value(), inactive_title.get_value() };
+        }
+        color_set_t decoration_theme_t::get_accent_colors() const {
+            return { active_accent.get_value(), inactive_accent.get_value() };
         }
 
         /* Other return functions */
@@ -157,6 +163,59 @@ namespace wf {
 
             return surface;
         }
+
+        // render_corners
+
+cairo_surface_t *decoration_theme_t::form_corner(bool active, int r, 
+                                                 matrix<double> m, 
+                                                 int height) const {
+    double c_r = corner_radius.get_value() * abs(m.xx);
+	double o_r = c_r - abs(m.xx) * (double)outline_size.get_value() / 2;
+
+    const auto format = CAIRO_FORMAT_ARGB32;
+    auto *surface = cairo_image_surface_create(format, c_r, height);
+    auto cr = cairo_create(surface);
+
+    cairo_translate(cr, c_r / 2, (double)height / 2);
+    cairo_scale(cr, m.xx, m.yy);
+    cairo_translate(cr, -c_r / 2, -(double)height / 2);
+
+    cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+    /* Border */
+	wf::color_t color = active ? active_border.get_value() :
+                        inactive_border.get_value();
+    cairo_set_source_rgba(cr, color.r, color.g, color.b, color.a);
+    if (r > 0) {
+        cairo_move_to(cr, 0, (int)(height - c_r));
+        cairo_arc(cr, 0, (int)(height - c_r), c_r, 0, M_PI / 2);
+        cairo_fill(cr);
+
+        cairo_rectangle(cr, 0, 0, c_r, height - c_r);
+        cairo_fill(cr);
+    } else {
+        cairo_rectangle(cr, 0, 0, c_r, height);
+        cairo_fill(cr);
+    }
+
+    /* Outline */
+	color = active ? active_outline.get_value() : inactive_outline.get_value();
+    cairo_set_source_rgba(cr, color.r, color.g, color.b, color.a);
+    cairo_set_line_width(cr, outline_size.get_value() * abs(m.xx));
+    if (r > 0) {
+        cairo_move_to(cr, o_r, 0);
+        cairo_line_to(cr, o_r, height - c_r);
+        cairo_arc(cr, 0, (int)(height - c_r), o_r, 0, M_PI / 2);
+        cairo_stroke(cr);
+    } else {
+        cairo_move_to(cr, o_r, 0);
+        cairo_line_to(cr, o_r, height - c_r + o_r);
+        cairo_line_to(cr, 0, height - c_r + o_r);
+    }
+    cairo_stroke(cr);
+    cairo_destroy(cr);
+
+    return surface;
+}
 
         cairo_surface_t *decoration_theme_t::form_button(button_type_t button, double hover,
                                                          bool active, bool maximized, double scale) const {
