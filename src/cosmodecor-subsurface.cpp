@@ -665,17 +665,17 @@ wf::option_wrapper_t<bool> maximized_titlebar{"cosmodecor/maximized_titlebar"};
                 if (edge == wf::cosmodecor::EDGE_TOP) {
                     g_o = { g.x, g.y, g.width, o_s };
                     g = { g.x, g.y + o_s, g.width, g.height - o_s };
-                } else if (edge == wf::cosmodecor::EDGE_LEFT) {
-                    // the g.y + is probably not correct, but works for now
-                    g_o = { g.x, g.y, o_s, g.y + g.height };
-                    g = { g.x + o_s, g.y, g.width - o_s, g.y + g.height };
                 } else if (edge == wf::cosmodecor::EDGE_BOTTOM) {
                     g_o = { g.x, g.y + g.height - o_s, g.width, o_s };
                     g = { g.x, g.y, g.width, g.height - o_s };
+                } else if (edge == wf::cosmodecor::EDGE_LEFT) {
+                    // the g.y + is probably not correct, but works for now
+                    g_o = { g.x, g.y - ((corner_radius > 0) ? 0: +border_size.top), o_s, g.y + g.height + ((corner_radius > 0) ? -corner_radius: +border_size.top) };
+                    g = { g.x + o_s, g.y, g.width - o_s, g.y + g.height - corner_radius };
                 } else if (edge == wf::cosmodecor::EDGE_RIGHT) {
                     // the g.y + is probably not correct, but works for now
-                    g_o = { g.x + g.width - o_s, g.y, o_s, g.y + g.height };
-                    g = { g.x, g.y, g.width - o_s, g.y + g.height };
+                    g_o = { g.x + g.width - o_s, g.y - ((corner_radius > 0) ? 0: +border_size.top), o_s, g.y + g.height  + ((corner_radius > 0) ? -corner_radius: +border_size.top) };
+                    g = { g.x, g.y, g.width - o_s, g.y + g.height - corner_radius };
                 }
                 g_o = g_o + o;
 
