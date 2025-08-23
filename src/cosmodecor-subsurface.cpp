@@ -306,8 +306,16 @@ wf::option_wrapper_t<bool> maximized_titlebar{"cosmodecor/maximized_titlebar"};
             {
                 self->update_layout(DONT_FORCE, target.scale);
 
+                int x = self->get_offset().x;
+                int y = self->get_offset().y;
+                int h = std::max({ self->corner_radius, self->border_size.top, self->border_size.bottom });
+                self->corners.tr.g = { self->size.width - self->corner_radius, 0, self->corner_radius, h };
+                self->corners.bl.g = { 0, self->size.height - h, self->corner_radius, h };
+                self->corners.br.g = { self->size.width - self->corner_radius,
+                                    self->size.height - h, self->corner_radius, h };
+
                 for (const auto& box : region) {
-                    self->render_scissor_box(target, self->get_offset(), wlr_box_from_pixman_box(box));
+                    self->render_scissor_box(target, {x, y}, wlr_box_from_pixman_box(box));
                 }
             }
         };
@@ -711,7 +719,7 @@ wf::option_wrapper_t<bool> maximized_titlebar{"cosmodecor/maximized_titlebar"};
 
         void render_scissor_box(const render_target_t& fb, point_t origin,
                                 const wlr_box& scissor) {
-            // Draw the background
+            /** Draw the background (corners and border) */
             wlr_box geometry{origin.x, origin.y, size.width, size.height};
             render_background(fb, geometry, scissor);
 
