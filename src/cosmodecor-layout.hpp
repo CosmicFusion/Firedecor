@@ -161,10 +161,10 @@ namespace wf {
             border_size_t parse_border(std::string border_size);
 
             /** Create buttons in the layout, and return their total geometry */
-            void create_areas(int width, int height, wf::dimensions_t title_size);
+            void create_areas(int width, int height, wf::dimensions_t title_size, bool tiled_edges);
 
             /** Regenerate layout using the new size */
-            void resize(int width, int height, wf::dimensions_t title_size);
+            void resize(int width, int height, wf::dimensions_t title_size, bool tiled_edges);
 
             /**
              * @return The decoration areas which need to be rendered, in top to bottom

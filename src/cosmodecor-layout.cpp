@@ -113,7 +113,7 @@ namespace wf {
         {}
 
         void decoration_layout_t::create_areas(int width, int height,
-                                               wf::dimensions_t title_size) {
+                                               wf::dimensions_t title_size, bool tiled_edges) {
             int count = std::count(layout.begin(), layout.end(), '-');
             std::string layout_str = layout;
             for (int i = 4; i > count; i--) {
@@ -143,21 +143,23 @@ namespace wf {
                 return { v.x * m.xx + v.y * m.xy, v.x * m.yx + v.y * m.yy };
             };
 
+            int corner_radius0 = (tiled_edges)? 0 : corner_radius;
+
             // For background geometry calculations
             // Background origin and the background's final point
-            wf::point_t b_o = { 0, 0 }, b_f = { width - corner_radius, border_size.top };
+            wf::point_t b_o = { 0, 0 }, b_f = { width - corner_radius0, border_size.top };
 
             // Background points 1 and 2
-            wf::point_t b_p1 = { corner_radius, 0 }, b_p2;
+            wf::point_t b_p1 = { corner_radius0, 0 }, b_p2;
 
             // Minimum shift needed for regular background, so it doesn't overlap corner
-            int min_shift = corner_radius;
+            int min_shift = corner_radius0;
 
             // "Height" of the current edge, that is, the border_size
             int edge_height = border_size.top;
 
             // The cutoff lengths for the background
-            int corner_h = std::max({ border_size.top, border_size.bottom, corner_radius });
+            int corner_h = std::max({ border_size.top, border_size.bottom, corner_radius0 });
 
             while (stream >> current_symbol) {
                 if (current_symbol == "|") {
@@ -268,15 +270,15 @@ namespace wf {
                         b_p1 = { 0, height - corner_h };
                         b_f = { border_size.left, corner_h };
                         edge_height = border_size.left;
-                        min_shift = corner_radius - border_size.bottom;
+                        min_shift = corner_radius0 - border_size.bottom;
                     } else if (cur_edge == EDGE_LEFT) {
                         cur_edge = EDGE_BOTTOM;
                         m = { 1, 0, 0, 1 };
                         o = b_o = { 0, height - (border_size.bottom + max_height) / 2 };
-                        b_p1 = { corner_radius, height - border_size.bottom };
-                        b_f = { width - corner_radius, height };
+                        b_p1 = { corner_radius0, height - border_size.bottom };
+                        b_f = { width - corner_radius0, height };
                         edge_height = border_size.bottom;
-                        min_shift = corner_radius;
+                        min_shift = corner_radius0;
                     } else {
                         cur_edge = EDGE_RIGHT;
                         m = { 0, -1, 1, 0 };
@@ -286,7 +288,7 @@ namespace wf {
                         b_p1 = { width, corner_h };
                         b_f = { width - border_size.right, height - corner_h };
                         edge_height = border_size.right;
-                        min_shift = corner_radius - border_size.top;
+                        min_shift = corner_radius0 - border_size.top;
                     }
 
                     left.clear();
@@ -308,12 +310,12 @@ namespace wf {
         }
 
         // Regenerate layout using a new size
-        void decoration_layout_t::resize(int width, int height, wf::dimensions_t title_size) {
+        void decoration_layout_t::resize(int width, int height, wf::dimensions_t title_size, bool tiled_edges) {
             max_height = std::max({ title_size.height, icon_size, button_size });
             this->background_areas.clear();
             this->layout_areas.clear();
 
-            create_areas(width, height, title_size);
+            create_areas(width, height, title_size, tiled_edges);
 
             // Areas for resizing only, used for movement area calculation
             int top_resize    = std::min(std::max(border_size.top - max_height - 7, 7),

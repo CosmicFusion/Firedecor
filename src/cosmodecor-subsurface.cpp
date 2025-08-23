@@ -95,7 +95,7 @@ wf::option_wrapper_t<bool> maximized_titlebar{"cosmodecor/maximized_titlebar"};
                     title_needs_update = true;
 
                     // Necessary in order to immediately place areas correctly
-                    layout.resize(size.width, size.height, title.dims);
+                    layout.resize(size.width, size.height, title.dims, view->toplevel()->current().tiled_edges);
                 }
             }
         }
@@ -642,6 +642,8 @@ wf::option_wrapper_t<bool> maximized_titlebar{"cosmodecor/maximized_titlebar"};
                 /**** Render the corners of an accent */
                 int r;
 
+                corner_radius = (view->toplevel()->current().tiled_edges)? 0 : corner_radius;
+
                 /** Create the corners, it should happen once per accent */
                 if (accent_textures.size() <= i) {
                     accent_textures.resize(i + 1);
@@ -696,14 +698,15 @@ wf::option_wrapper_t<bool> maximized_titlebar{"cosmodecor/maximized_titlebar"};
 
         void render_background(const render_target_t& fb, geometry_t rect,
                                const geometry_t& scissor) {
-            edge_colors_t colors = {
+            if (auto view = _view.lock()) {
+                edge_colors_t colors = {
                 theme.get_border_colors(), theme.get_outline_colors()
             };
 
             colors.border.active = alpha_trans(colors.border.active);
             colors.border.inactive = alpha_trans(colors.border.inactive);
 
-            int r = theme.get_corner_radius() * fb.scale;
+            int r = (view->toplevel()->current().tiled_edges)? 0 : theme.get_corner_radius() * fb.scale;
             update_corners(colors, r, fb.scale);
 
             // Borders
@@ -714,6 +717,7 @@ wf::option_wrapper_t<bool> maximized_titlebar{"cosmodecor/maximized_titlebar"};
                 render_background_area(fb, area->get_geometry(), rect_o, scissor, area->get_corners(), i, area->get_type(),
                                        area->get_m(), area->get_edge());
                 i++;
+            }
             }
         }
 
@@ -846,7 +850,7 @@ wf::option_wrapper_t<bool> maximized_titlebar{"cosmodecor/maximized_titlebar"};
                 view->damage();
                 size = dims;
 
-                layout.resize(size.width, size.height, title.dims);
+                layout.resize(size.width, size.height, title.dims, view->toplevel()->current().tiled_edges);
 
                 if (!view->toplevel()->current().fullscreen) {
                     this->cached_region = layout.calculate_region();
